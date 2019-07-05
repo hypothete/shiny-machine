@@ -1,0 +1,22 @@
+<html>
+  <head>
+    <title>Shiny Hunting Machine</title>
+  </head>
+  <body>
+    <h1>Shiny Hunting Machine v2.2.0</h1>
+    <h2>Reset # </h2>
+    <h2>
+      Last measured loop took ms
+    </h2>
+    <form action="/" method="post">
+      <label for="ambush">Ambush encounter? </label>
+      <input type="checkbox" name="ambush" />
+      <br /><br />
+      <input type="submit" value="Reset Hunt" />
+    </form>
+    <canvas width="500" height="150"></canvas>
+    <br /><br />
+    <a id="dl-link" download="download.json">Download data</a>
+    <script type="text/javascript" src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,112 @@
+    String page = "<html><head><title>Shiny Hunting Machine</title></head><body>";
+    page += "<h1>Shiny Hunting Machine v2.2.0</h1>";
+    page += "<h2>Reset #";
+    page += srCount;
+    page += ", ";
+    page += (isHunting ? "still hunting" : "found shiny!");
+    page += "</h2>";
+    page += "<h2>Last measured loop took ";
+    page += lastMeasuredLoop;
+    page += "ms</h2>";
+    page += "<form action='/' method='post'>";
+    page += "<label for='ambush'>Ambush encounter? </label>";
+    page += "<input type='checkbox' name='ambush' ";
+    page += isAmbush ? "checked" : "";
+    page += " />";
+    page += "<br /><br />";
+    page += "<input type='submit' value='Reset Hunt' />";
+    page += "</form>";
+    page += "<canvas width='500' height='150'></canvas>";
+    page += "<br /><br /><a id='dl-link' download='";
+    page += srCount;
+    page += "-";
+    page += isAmbush ? "ambush" : "overworld";
+    page += ".json'>Download data</a>";
+    page += "<script type='text/javascript'>";
+    page += "  let vals = [";
+    for(int i=0; i<KNOWN_VALUES_LENGTH; i++){
+      if (knownValues[i] == 0.0) {
+        break;
+      }
+      if (i > 0 && i < KNOWN_VALUES_LENGTH - 1) {
+        page += ", ";
+      }
+      page += knownValues[i];
+    }
+    page += "];\n";
+    page += "  let valTallies = [";
+    for(int i=0; i<KNOWN_VALUES_LENGTH; i++){
+      if (knownValuesTally[i] == 0.0) {
+        break;
+      }
+      if (i > 0 && i < KNOWN_VALUES_LENGTH - 1) {
+        page += ", ";
+      }
+      page += knownValuesTally[i];
+    }
+    page += "];\n";
+    page += "  const minVal = ";
+    page += minVal;
+    page += ";\n";
+    page += "  const maxVal = ";
+    page += maxVal;
+    page += ";\n";
+    page += "  const maxValTally = ";
+    page += maxValTally;
+    page += ";\n";
+    page += "const margin = 20;\n";
+    page += "const can = document.querySelector('canvas');\n";
+    page += "const ctx = can.getContext('2d');\n";
+    page += "ctx.strokeStyle = 'black';\n";
+    page += "ctx.fillStyle = 'rgba(0, 192, 255, 0.2)';\n";
+    page += "const w = can.width;\n";
+    page += "const h = can.height;\n";
+    page += "const scaleX = item => {\n";
+    page += "  return (w - margin) * (item - minVal)/((maxVal + ";
+    page + MAX_SHINY_TIME;
+    page += ") - minVal) + margin;\n";
+    page += "};\n";
+    page += "const scaleY = item => {\n";
+    page += "  return -(h - margin) * (Math.log(item + 1) / Math.log(maxValTally)) + h - margin;\n";
+    page += "};\n";
+    page += "ctx.beginPath();\n";
+    page += "ctx.moveTo(margin, 0);\n";
+    page += "ctx.lineTo(margin, h - margin);\n";
+    page += "ctx.lineTo(w, h - margin);\n";
+    page += "for(let i=0; i<=10; i++) {\n";
+    page += "  const tickVal = minVal + (i * (maxVal + ";
+    page += MAX_SHINY_TIME;
+    page += " - minVal)/10);\n";
+    page += "  const tx = scaleX(tickVal);\n";
+    page += "  ctx.moveTo(tx, h - margin);\n";
+    page += "  ctx.lineTo(tx, h - margin + 10);\n";
+    page += "  ctx.strokeText(tickVal,tx + 1, h);\n";
+    page += "}\n";
+    page += "const mlt = Math.floor(Math.log(maxValTally));\n";
+    page += "for(let i=0; i<=mlt; i++){\n";
+    page += "  const tickVal = Math.pow(mlt, i);\n";
+    page += "  const tx = scaleY(tickVal);\n";
+    page += "  ctx.moveTo(margin - 10, tx);\n";
+    page += "  ctx.lineTo(margin, tx);\n";
+    page += "  ctx.strokeText(tickVal, 1, tx + 10);\n";
+    page += "}\n";
+    page += "vals.forEach((val, index) => {\n";
+    page += "  const valTal = valTallies[index];\n";
+    page += "  const scaledVal = scaleX(val);\n";
+    page += "  const scaledTal = scaleY(valTal);\n";
+    page += "  const scaledMinTal = scaleY(0);\n";
+    page += "  const shinyStart = scaleX(val + ";
+    page += MIN_SHINY_TIME;
+    page += ");\n";
+    page += "  const shinyEnd = scaleX(val + ";
+    page += MAX_SHINY_TIME;
+    page += ");\n";
+    page += "  ctx.moveTo(scaledVal, scaledMinTal);\n";
+    page += "  ctx.lineTo(scaledVal, scaledTal);\n";
+    page += "  ctx.fillRect(shinyStart, scaledTal, shinyEnd - shinyStart, scaledMinTal - scaledTal);\n";
+    page += "});\n";
+    page += "ctx.stroke();\n";
+    page += "const dlLink = document.querySelector('#dl-link');\n";
+    page += "dlLink.setAttribute('href', 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify({ values: vals, tallies: valTallies })));\n";
+    page += "</script>\n";
+    page += "</body></html>";
