@@ -15,8 +15,8 @@ SSD1306Wire  display(0x3c, 5, 4);
 // Servo stuff
 Servo startservo;
 Servo aservo;
-int A_PIN = 12;
-int START_PIN = 2;
+#define A_PIN = 12
+#define START_PIN = 2
 
 // Luminosity sensor
 Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 12345);
@@ -34,9 +34,22 @@ HTTPClient http;
 // timing for non-blocking loop
 long lastLoopStart = 0.0;
 long timeLuxStart = 0.0;
-int resetState = 0;
 long timeUntilOptions = 0.0;
 long lastMeasuredLoop = 0.0;
+
+enum loopState {
+  StartLoop,
+  SkipIntro,
+  OpenFile,
+  StartEncounter,
+  OverworldStart,
+  OverworldInteract,
+  StartLuxMeter,
+  MonitorLux,
+  EndLoop
+};
+
+loopState resetState = StartLoop;
 
 #define MIN_SHINY_TIME 1080
 #define MAX_SHINY_TIME 1280
@@ -55,148 +68,14 @@ void pressButton(Servo servo, int pin) {
   servo.detach();
 }
 
-void handleRoot() {
-  if (server.method() == HTTP_GET) {
-    long maxVal = 0;
-    long minVal = 30000.0;
-    int maxValTally = 0;
-    for (int i=0; i< KNOWN_VALUES_LENGTH; i++) {
-      long d = knownValues[i];
-      if (d == 0.0) {
-        break;
-      }
-      if (d < minVal) {
-        minVal = d;
-      }
-      if (d > maxVal) {
-        maxVal = d;
-      }
-      int e = knownValuesTally[i];
-      if (e > maxValTally) {
-        maxValTally = e;
-      }
-    }
-    // round values for better graphing
-    minVal -= 100; // to give some room around measurements
-    maxValTally = maxValTally * 2; // this should work well with log scaling
-
-    String page = "<html><head><title>Shiny Hunting Machine</title></head><body>";
-    page += "<h1>Shiny Hunting Machine v2.2.0</h1>";
-    page += "<h2>Reset #";
-    page += srCount;
-    page += ", ";
-    page += (isHunting ? "still hunting" : "found shiny!");
-    page += "</h2>";
-    page += "<h2>Last measured loop took ";
-    page += lastMeasuredLoop;
-    page += "ms</h2>";
-    page += "<form action='/' method='post'>";
-    page += "<label for='ambush'>Ambush encounter? </label>";
-    page += "<input type='checkbox' name='ambush' ";
-    page += isAmbush ? "checked" : "";
-    page += " />";
-    page += "<br /><br />";
-    page += "<input type='submit' value='Reset Hunt' />";
-    page += "</form>";
-    page += "<canvas width='500' height='150'></canvas>";
-    page += "<br /><br /><a id='dl-link' download='shiny-machine.json'>Download data</a>";
-    page += "<script type='text/javascript'>";
-    page += "  let vals = [";
-    for(int i=0; i<KNOWN_VALUES_LENGTH; i++){
-      if (knownValues[i] == 0.0) {
-        break;
-      }
-      if (i > 0 && i < KNOWN_VALUES_LENGTH - 1) {
-        page += ", ";
-      }
-      page += knownValues[i];
-    }
-    page += "];\n";
-    page += "  let valTallies = [";
-    for(int i=0; i<KNOWN_VALUES_LENGTH; i++){
-      if (knownValuesTally[i] == 0.0) {
-        break;
-      }
-      if (i > 0 && i < KNOWN_VALUES_LENGTH - 1) {
-        page += ", ";
-      }
-      page += knownValuesTally[i];
-    }
-    page += "];\n";
-    page += "  const minVal = ";
-    page += minVal;
-    page += ";\n";
-    page += "  const maxVal = ";
-    page += maxVal;
-    page += ";\n";
-    page += "  const maxValTally = ";
-    page += maxValTally;
-    page += ";\n";
-    page += "const margin = 20;\n";
-    page += "const can = document.querySelector('canvas');\n";
-    page += "const ctx = can.getContext('2d');\n";
-    page += "ctx.strokeStyle = 'black';\n";
-    page += "ctx.fillStyle = 'rgba(0, 192, 255, 0.2)';\n";
-    page += "const w = can.width;\n";
-    page += "const h = can.height;\n";
-    page += "const scaleX = item => {\n";
-    page += "  return (w - margin) * (item - minVal)/((maxVal + ";
-    page + MAX_SHINY_TIME;
-    page += ") - minVal) + margin;\n";
-    page += "};\n";
-    page += "const scaleY = item => {\n";
-    page += "  return -(h - margin) * (Math.log(item + 1) / Math.log(maxValTally)) + h - margin;\n";
-    page += "};\n";
-    page += "ctx.beginPath();\n";
-    page += "ctx.moveTo(margin, 0);\n";
-    page += "ctx.lineTo(margin, h - margin);\n";
-    page += "ctx.lineTo(w, h - margin);\n";
-    page += "for(let i=0; i<=10; i++) {\n";
-    page += "  const tickVal = minVal + (i * (maxVal + ";
-    page += MAX_SHINY_TIME;
-    page += " - minVal)/10);\n";
-    page += "  const tx = scaleX(tickVal);\n";
-    page += "  ctx.moveTo(tx, h - margin);\n";
-    page += "  ctx.lineTo(tx, h - margin + 10);\n";
-    page += "  ctx.strokeText(tickVal,tx + 1, h);\n";
-    page += "}\n";
-    page += "const mlt = Math.floor(Math.log(maxValTally));\n";
-    page += "for(let i=0; i<=mlt; i++){\n";
-    page += "  const tickVal = Math.pow(mlt, i);\n";
-    page += "  const tx = scaleY(tickVal);\n";
-    page += "  ctx.moveTo(margin - 10, tx);\n";
-    page += "  ctx.lineTo(margin, tx);\n";
-    page += "  ctx.strokeText(tickVal, 1, tx + 10);\n";
-    page += "}\n";
-    page += "vals.forEach((val, index) => {\n";
-    page += "  const valTal = valTallies[index];\n";
-    page += "  const scaledVal = scaleX(val);\n";
-    page += "  const scaledTal = scaleY(valTal);\n";
-    page += "  const scaledMinTal = scaleY(0);\n";
-    page += "  const shinyStart = scaleX(val + ";
-    page += MIN_SHINY_TIME;
-    page += ");\n";
-    page += "  const shinyEnd = scaleX(val + ";
-    page += MAX_SHINY_TIME;
-    page += ");\n";
-    page += "  ctx.moveTo(scaledVal, scaledMinTal);\n";
-    page += "  ctx.lineTo(scaledVal, scaledTal);\n";
-    page += "  ctx.fillRect(shinyStart, scaledTal, shinyEnd - shinyStart, scaledMinTal - scaledTal);\n";
-    page += "});\n";
-    page += "ctx.stroke();\n";
-    page += "const dlLink = document.querySelector('#dl-link');\n";
-    page += "dlLink.setAttribute('href', 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify({ values: vals, tallies: valTallies })));\n";
-    page += "</script>\n";
-    page += "</body></html>";
-    server.send(200, "text/html", page);
-  }
-  else if (server.method() == HTTP_POST) {
-    String ambush = server.arg("ambush");
+void handleReset() {
+  if (server.method() == HTTP_POST) {
     clearKnownValues();
+    String ambush = server.arg("ambush");
     isAmbush = ambush.equals("on");
     srCount = 0;
     isHunting = true;
-    resetState = 0;
+    resetState = StartLoop;
     server.send(200, "text/html", redirectPage);
     display.clear();
     display.println("Restarting hunt...");
@@ -208,6 +87,40 @@ void handleRoot() {
     // weird verb - just redirect to form
     server.send(200, "text/html", redirectPage);
   }
+}
+
+void handleJson() {
+  String page = "{\n";
+  page += "  \"values\": [";
+  for(int i=0; i<KNOWN_VALUES_LENGTH; i++){
+    if (knownValues[i] == 0.0) {
+      break;
+      }
+    if (i > 0 && i < KNOWN_VALUES_LENGTH - 1) {
+      page += ", ";
+    }
+    page += "[";
+    page += knownValues[i];
+    page += ", ";
+    page += knownValuesTally[i];
+    page += "]";
+  }
+  page += "],\n";
+  page += "  \"resetCount\": ";
+  page += srCount;
+  page += ",\n";
+  page += "  \"isHunting\": ";
+  page += isHunting ? "true" : "false";
+  page += ",\n";
+  page += "  \"lastMeasuredLoop\": ";
+  page += lastMeasuredLoop;
+  page += ",\n";
+  page += "  \"isAmbush\": ";
+  page += isAmbush ? "true" : "false";
+  page += "\n";
+  page += "}";
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, "application/json", page);
 }
 
 void handleNotFound() {
@@ -306,7 +219,8 @@ void setupWifi() {
 
 void setupServer() {
   // start server
-  server.on("/", handleRoot);
+  server.on("/", handleJson);
+  server.on("/reset", handleReset);
   server.onNotFound(handleNotFound);
   server.begin();
 }
@@ -355,58 +269,58 @@ void postToTwilio() {
 void softResetLoop() {
   long lux = 0.0;
   long timeSinceLast = millis() - lastLoopStart;
-  if (resetState == 0) {
+  if (resetState == StartLoop) {
     lastLoopStart = millis();
     display.clear();
     display.print("starting loop ");
     display.println(srCount);
     display.drawLogBuffer(0, 0);
     display.display();
-    resetState = 1;
+    resetState = SkipIntro;
   }
-  else if (resetState == 1 && timeSinceLast > 8000) {
+  else if (resetState == SkipIntro && timeSinceLast > 8000) {
     // skip intro
     pressButton(aservo, A_PIN);
-    resetState = 2;
+    resetState = OpenFile;
   }
-  else if (resetState == 2 && timeSinceLast > 11000) {
+  else if (resetState == OpenFile && timeSinceLast > 11000) {
     // open file
     pressButton(aservo, A_PIN);
-    resetState = 3;
+    resetState = StartEncounter;
   }
-  else if (resetState == 3) {
+  else if (resetState == StartEncounter) {
     if (isAmbush && timeSinceLast > 20000) {
-      resetState = 6;
+      resetState = StartLuxMeter;
       // jump to lux phase after 9s delay
     }
     else if(!isAmbush && timeSinceLast > 16000){
-     resetState = 4;
+     resetState = OverworldStart;
      // 5s delay
     }
   }
-  else if (resetState == 4 && timeSinceLast > 21000) {
+  else if (resetState == OverworldStart && timeSinceLast > 21000) {
     // ultra beast, press A to interact
-    resetState = 5;
+    resetState = OverworldInteract;
     pressButton(aservo, A_PIN);
   }
-  else if (resetState == 5 && timeSinceLast > 26000) {
+  else if (resetState == OverworldInteract && timeSinceLast > 26000) {
     // 5s wait after pressing A
-    resetState = 6;
+    resetState = StartLuxMeter;
   }
-  else if (resetState == 6) {
+  else if (resetState == StartLuxMeter) {
     display.clear();
     display.println("monitoring lux");
     display.drawLogBuffer(0, 0);
     display.display();
     timeLuxStart = millis();
-    resetState = 7;
+    resetState = MonitorLux;
   }
-  else if (resetState == 7) {
+  else if (resetState == MonitorLux) {
     // monitor lux
     lux = updateLux();
     timeUntilOptions = millis() - timeLuxStart;
     if (lux > 49.0) {
-      resetState = 8;
+      resetState = EndLoop;
     }
     else if (timeUntilOptions > 30000) {
       // something has snagged - a shiny animation should not take this long
@@ -414,13 +328,13 @@ void softResetLoop() {
       display.println("Unexpected error");
       display.drawLogBuffer(0, 0);
       display.display();
-      resetState = 0;
+      resetState = StartLoop;
       pressButton(startservo, START_PIN);
       srCount += 1;
     }
   }
-  else if (resetState == 8) {
-    resetState = 0;
+  else if (resetState == EndLoop) {
+    resetState = StartLoop;
     lastMeasuredLoop = timeUntilOptions;
     int roundedTime = 10 * round(timeUntilOptions/10);
     display.clear();
