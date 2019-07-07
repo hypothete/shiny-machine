@@ -32,15 +32,14 @@ const margin = 20;
 init();
 
 function init() {
-  loading.style.transition = '0.25s ease-out opacity';
-  loaded.style.transition = '0.25s ease-in opacity';
-  loading.style.opacity = 1.0;
-  loaded.style.opacity = 0.0;
+  loading.style.display = 'block';
+  loaded.style.display = 'none';
+  continueForm.style.display = 'none';
   getJson()
     .then(data => {
       version.textContent = data.version || "???";
-      loading.style.opacity = 0.0;
-      loaded.style.opacity = 1.0;
+      loading.style.display = 'none';
+      loaded.style.display = 'block';
       // update bounds
       data.values.forEach(tuple => {
         if (tuple[0] < minVal) {
@@ -62,6 +61,9 @@ function init() {
       resetHeader.textContent = `Reset #${resetCount}, ${
         isHunting ? "still hunting" : "found shiny!"
       }`;
+      if (!isHunting) {
+        continueForm.style.display = 'none';
+      }
       loopHeader.textContent = `Last measured loop took ${lastMeasuredLoop} ms`;
       huntSelect.value = huntmode;
       resetForm.setAttribute('action', rootURL + '/reset');
