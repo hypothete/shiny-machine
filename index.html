@@ -3,16 +3,27 @@
     <title>Shiny Hunting Machine</title>
   </head>
   <body>
-    <h1>Shiny Hunting Machine v2.2.0</h1>
-    <h2 id="reset-count"></h2>
-    <h2 id="last-loop"></h2>
-    <form id="reset-form" method="post">
-      <label for="ambush">Ambush encounter? </label>
-      <input id="ambush-check" type="checkbox" name="ambush" />
-      <br /><br />
-      <input type="submit" value="Reset Hunt" />
-    </form>
-    <canvas width="500" height="150"></canvas>
+    <h1>Shiny Hunting Machine v<span id="version"></span></h1>
+    <div id="loading">
+      <h2>Loading...</h2>
+    </div>
+    <div id="loaded">
+      <h2 id="reset-count"></h2>
+      <h2 id="last-loop"></h2>
+      <form id="reset-form" method="post">
+        <label for="huntmode">Hunt mode: </label>
+        <select id="hunt-mode" name="huntmode">
+          <option value="overworld">overworld</option>
+          <option value="ambush" default>ambush</option>
+        </select>
+        <br /><br />
+        <input type="submit" value="Reset Hunt" />
+      </form>
+      <form id="continue-form" method="post">
+          <input type="submit" value="Continue" />
+      </form>
+      <canvas width="500" height="150"></canvas>
+    </div>
     <script type="text/javascript" src="app.js" type="module"></script>
   </body>
 </html>

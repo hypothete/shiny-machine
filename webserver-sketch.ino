@@ -9,6 +9,8 @@
 #include <Adafruit_TSL2561_U.h>
 #include "arduino_secrets.h";
 
+String version = "2.3.0";
+
 // Initialize the OLED display using Wire library
 SSD1306Wire  display(0x3c, 5, 4);
 
@@ -23,11 +25,11 @@ Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 1234
 
 // Webserver & retained data
 WebServer server(80);
-bool isAmbush = true;
+String huntmode = "ambush";
 bool isHunting = true;
 int srCount = 0;
 String redirectPage = "<html><head><title>Redirecting...</title><meta http-equiv='refresh' content='1;url=/' /></head><body></body></html>";
-String backPage = "<html><head><title>Redirecting...</title></head><body><script type='text/javascript'>location.replace(document.referrer);</script></body></html>";
+String backPage = "<html><head><title>Going back to referrer...</title></head><body><script type='text/javascript'>location.replace(document.referrer);</script></body></html>";
 
 // HTTP client for Twilio
 HTTPClient http;
@@ -46,7 +48,6 @@ enum loopState {
   OpenFile,
   StartEncounter,
   OverworldStart,
-  OverworldInteract,
   StartLuxMeter,
   MonitorLux,
   EndLoop
@@ -74,14 +75,33 @@ void pressButton(Servo servo, int pin) {
 void handleReset() {
   if (server.method() == HTTP_POST) {
     clearKnownValues();
-    String ambush = server.arg("ambush");
-    isAmbush = ambush.equals("on");
+    huntmode = server.arg("huntmode");
     srCount = 0;
     isHunting = true;
     resetState = StartLoop;
     server.send(200, "text/html", backPage);
     display.clear();
-    display.println("Restarting hunt...");
+    display.println("Restarting hunt");
+    display.print("Setting hunt mode to ");
+    display.println(huntmode);
+    display.drawLogBuffer(0, 0);
+    display.display();
+    pressButton(startservo, START_PIN);
+  }
+  else {
+    // weird verb - just redirect to form
+    server.send(200, "text/html", redirectPage);
+  }
+}
+
+void handleContinue() {
+  if (server.method() == HTTP_POST) {
+    srCount += 1;
+    isHunting = true;
+    resetState = StartLoop;
+    server.send(200, "text/html", backPage);
+    display.clear();
+    display.println("Continuing hunt");
     display.drawLogBuffer(0, 0);
     display.display();
     pressButton(startservo, START_PIN);
@@ -94,6 +114,9 @@ void handleReset() {
 
 void handleJson() {
   String page = "{\n";
+  page += "  \"version\": \"";
+  page += version;
+  page += "\",\n";
   page += "  \"values\": [";
   for(int i=0; i<KNOWN_VALUES_LENGTH; i++){
     if (knownValues[i] == 0.0) {
@@ -118,9 +141,9 @@ void handleJson() {
   page += "  \"lastMeasuredLoop\": ";
   page += lastMeasuredLoop;
   page += ",\n";
-  page += "  \"isAmbush\": ";
-  page += isAmbush ? "true" : "false";
-  page += "\n";
+  page += "  \"huntmode\": \"";
+  page += huntmode;
+  page += "\"\n";
   page += "}";
   server.sendHeader("Access-Control-Allow-Origin", "*");
   server.send(200, "application/json", page);
@@ -129,7 +152,7 @@ void handleJson() {
 void handleNotFound() {
   server.send(404, "text/plain", "File not found\n");
   display.clear();
-  display.println("Bad request");
+  display.println("Sent 404");
   display.drawLogBuffer(0, 0);
   display.display();
 }
@@ -224,6 +247,7 @@ void setupServer() {
   // start server
   server.on("/", handleJson);
   server.on("/reset", handleReset);
+  server.on("/continue", handleContinue);
   server.onNotFound(handleNotFound);
   server.begin();
 }
@@ -291,19 +315,21 @@ void softResetLoop() {
     resetState = StartEncounter;
   }
   else if (resetState == StartEncounter && timeSinceLast > 16000) {
-    if (isAmbush) {
+    display.clear();
+    display.print("starting ");
+    display.print(huntmode);
+    display.println(" hunt");
+    display.drawLogBuffer(0, 0);
+    display.display();
+    if (huntmode.equals("ambush")) {
       resetState = StartLuxMeter;
       // jump to lux phase after 9s delay
     }
-    else {
-     resetState = OverworldStart;
+    else if(huntmode.equals("overworld")) {
+      resetState = OverworldStart;
+      pressButton(aservo, A_PIN);
+      resetState = StartLuxMeter;
     }
-  }
-  else if (resetState == OverworldStart && timeSinceLast > 21000) {
-    // ultra beast, press A to interact
-    resetState = OverworldInteract;
-    pressButton(aservo, A_PIN);
-    resetState = StartLuxMeter;
   }
   else if (resetState == StartLuxMeter) {
     display.clear();

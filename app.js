@@ -7,16 +7,19 @@ let maxValTally = 10;
 let resetCount = 0;
 let lastMeasuredLoop = 0;
 let isHunting = true;
-let isAmbush = false;
+let huntmode = "ambush";
 
-const margin = 20;
+const loading = document.getElementById("loading");
+const loaded = document.getElementById("loaded");
 const can = document.querySelector("canvas");
 const ctx = can.getContext("2d");
 
+const version = document.getElementById("version");
 const resetHeader = document.getElementById("reset-count");
 const loopHeader = document.getElementById("last-loop");
-const ambushCheck = document.getElementById("ambush-check");
+const huntSelect = document.getElementById("hunt-mode");
 const resetForm = document.getElementById("reset-form");
+const continueForm = document.getElementById("continue-form");
 
 const rootURL = "http://192.168.1.47";
 
@@ -24,12 +27,20 @@ ctx.strokeStyle = "black";
 ctx.fillStyle = "rgba(0, 192, 255, 0.2)";
 const w = can.width;
 const h = can.height;
+const margin = 20;
 
 init();
 
 function init() {
+  loading.style.transition = '0.25s ease-out opacity';
+  loaded.style.transition = '0.25s ease-in opacity';
+  loading.style.opacity = 1.0;
+  loaded.style.opacity = 0.0;
   getJson()
     .then(data => {
+      version.textContent = data.version || "???";
+      loading.style.opacity = 0.0;
+      loaded.style.opacity = 1.0;
       // update bounds
       data.values.forEach(tuple => {
         if (tuple[0] < minVal) {
@@ -45,18 +56,16 @@ function init() {
       resetCount = data.resetCount;
       lastMeasuredLoop = data.lastMeasuredLoop;
       isHunting = data.isHunting;
-      isAmbush = data.isAmbush;
+      huntmode = data.huntmode;
 
       // update DOM
       resetHeader.textContent = `Reset #${resetCount}, ${
         isHunting ? "still hunting" : "found shiny!"
       }`;
       loopHeader.textContent = `Last measured loop took ${lastMeasuredLoop} ms`;
-      if (isAmbush) {
-        ambushCheck.setAttribute("checked", "checked");
-      }
+      huntSelect.value = huntmode;
       resetForm.setAttribute('action', rootURL + '/reset');
-
+      continueForm.setAttribute('action', rootURL + '/continue');
       // update canvas
       drawGraph(data.values);
     })
