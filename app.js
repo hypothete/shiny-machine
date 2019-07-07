@@ -3,7 +3,7 @@ const MAX_SHINY_TIME = 1280;
 
 let minVal = 30000;
 let maxVal = 0;
-let maxValTally = 2000;
+let maxValTally = 10;
 let resetCount = 0;
 let lastMeasuredLoop = 0;
 let isHunting = true;
@@ -39,7 +39,7 @@ function init() {
           maxVal = tuple[0];
         }
         if (tuple[1] > maxValTally) {
-          maxValTally = tuple[1];
+          maxValTally = tuple[1] * 2;
         }
       });
       resetCount = data.resetCount;
@@ -61,7 +61,7 @@ function init() {
       drawGraph(data.values);
     })
     .catch(err => {
-      document.body = err;
+      throw err;
     });
 }
 

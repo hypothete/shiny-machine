@@ -15,8 +15,8 @@ SSD1306Wire  display(0x3c, 5, 4);
 // Servo stuff
 Servo startservo;
 Servo aservo;
-#define A_PIN = 12
-#define START_PIN = 2
+#define A_PIN 12
+#define START_PIN 2
 
 // Luminosity sensor
 Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 12345);
@@ -27,6 +27,7 @@ bool isAmbush = true;
 bool isHunting = true;
 int srCount = 0;
 String redirectPage = "<html><head><title>Redirecting...</title><meta http-equiv='refresh' content='1;url=/' /></head><body></body></html>";
+String backPage = "<html><head><title>Redirecting...</title></head><body><script type='text/javascript'>location.replace(document.referrer);</script></body></html>";
 
 // HTTP client for Twilio
 HTTPClient http;
@@ -34,6 +35,8 @@ HTTPClient http;
 // timing for non-blocking loop
 long lastLoopStart = 0.0;
 long timeLuxStart = 0.0;
+long lux = 0.0;
+long lastLux = 0.0;
 long timeUntilOptions = 0.0;
 long lastMeasuredLoop = 0.0;
 
@@ -76,7 +79,7 @@ void handleReset() {
     srCount = 0;
     isHunting = true;
     resetState = StartLoop;
-    server.send(200, "text/html", redirectPage);
+    server.send(200, "text/html", backPage);
     display.clear();
     display.println("Restarting hunt...");
     display.drawLogBuffer(0, 0);
@@ -267,7 +270,6 @@ void postToTwilio() {
 }
 
 void softResetLoop() {
-  long lux = 0.0;
   long timeSinceLast = millis() - lastLoopStart;
   if (resetState == StartLoop) {
     lastLoopStart = millis();
@@ -288,44 +290,50 @@ void softResetLoop() {
     pressButton(aservo, A_PIN);
     resetState = StartEncounter;
   }
-  else if (resetState == StartEncounter) {
-    if (isAmbush && timeSinceLast > 20000) {
+  else if (resetState == StartEncounter && timeSinceLast > 16000) {
+    if (isAmbush) {
       resetState = StartLuxMeter;
       // jump to lux phase after 9s delay
     }
-    else if(!isAmbush && timeSinceLast > 16000){
+    else {
      resetState = OverworldStart;
-     // 5s delay
     }
   }
   else if (resetState == OverworldStart && timeSinceLast > 21000) {
     // ultra beast, press A to interact
     resetState = OverworldInteract;
     pressButton(aservo, A_PIN);
-  }
-  else if (resetState == OverworldInteract && timeSinceLast > 26000) {
-    // 5s wait after pressing A
     resetState = StartLuxMeter;
   }
   else if (resetState == StartLuxMeter) {
     display.clear();
-    display.println("monitoring lux");
+    display.println("starting lux meter");
     display.drawLogBuffer(0, 0);
     display.display();
-    timeLuxStart = millis();
+    lux = 0.0;
+    lastLux = 0.0;
     resetState = MonitorLux;
   }
   else if (resetState == MonitorLux) {
     // monitor lux
+    lastLux = lux;
     lux = updateLux();
     timeUntilOptions = millis() - timeLuxStart;
     if (lux > 49.0) {
       resetState = EndLoop;
     }
+    else if (lux > 10.0 && lastLux < 4.0) {
+      // screen goes from black to dark
+      display.clear();
+      display.println("measuring animation");
+      display.drawLogBuffer(0, 0);
+      display.display();
+      timeLuxStart = millis();
+    }
     else if (timeUntilOptions > 30000) {
       // something has snagged - a shiny animation should not take this long
       display.clear();
-      display.println("Unexpected error");
+      display.println("unexpected error");
       display.drawLogBuffer(0, 0);
       display.display();
       resetState = StartLoop;
@@ -338,9 +346,7 @@ void softResetLoop() {
     lastMeasuredLoop = timeUntilOptions;
     int roundedTime = 10 * round(timeUntilOptions/10);
     display.clear();
-    display.print("loop ");
-    display.print(srCount);
-    display.print(" took ");
+    display.print("animation took ");
     display.print(roundedTime);
     display.println("ms");
     display.drawLogBuffer(0, 0);
@@ -349,7 +355,7 @@ void softResetLoop() {
     bool shinyCheck = inShinyRange(roundedTime);
     if (shinyCheck) {
       display.clear();
-      display.println("Found shiny!");
+      display.println("found shiny!");
       display.drawLogBuffer(0, 0);
       display.display();
       isHunting = false;
