@@ -297,6 +297,9 @@ void postToTwilio() {
     http.end();
     delay(15000 + 3000 * retries);
     retries += 1;
+    if (retries > 10) {
+      break;
+    }
   }
 }
 
