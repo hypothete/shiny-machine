@@ -9,6 +9,9 @@ let timeoutCount = 0;
 let lastMeasuredLoop = 0;
 let isHunting = true;
 let huntmode = "ambush";
+let useWindow = false;
+let windowStart = 0;
+let windowEnd = 30000;
 
 const loading = document.getElementById("loading");
 const loaded = document.getElementById("loaded");
@@ -22,6 +25,14 @@ const timeoutHeader = document.getElementById("timeouts");
 const huntSelect = document.getElementById("hunt-mode");
 const resetForm = document.getElementById("reset-form");
 const continueForm = document.getElementById("continue-form");
+const windowToggle = document.getElementById("use-window");
+const windowCtrls = document.getElementById('window-ctrls');
+const windowStartInput = document.getElementById("window-start");
+const windowEndInput = document.getElementById("window-end");
+
+windowToggle.onclick = (evt) => {
+  windowCtrls.style.display = evt.target.checked ? 'block' : 'none';
+}
 
 const rootURL = "http://192.168.1.47";
 
@@ -59,14 +70,26 @@ function init() {
       lastMeasuredLoop = data.lastMeasuredLoop;
       isHunting = data.isHunting;
       huntmode = data.huntmode;
+      useWindow = data.useWindow;
+      windowStart = data.windowStart;
+      windowEnd = data.windowEnd;
 
       // update DOM
       resetHeader.textContent = `Reset #${resetCount}, ${
         isHunting ? "still hunting" : "found shiny!"
       }`;
       loopHeader.textContent = `Last measured loop took ${lastMeasuredLoop} ms`;
-      timeoutHeader = `${timeoutCount} timeouts in this hunt`;
+      timeoutHeader.textContent = `${timeoutCount} timeouts in this hunt`;
       huntSelect.value = huntmode;
+
+      // window ctrls
+      if (useWindow) {
+        windowToggle.setAttribute('checked', 'checked');
+      }
+      windowCtrls.style.display = useWindow ? 'block' : 'none';
+      windowStartInput.value = windowStart;
+      windowEndInput.value = windowEnd;
+
       resetForm.setAttribute('action', rootURL + '/reset');
       continueForm.setAttribute('action', rootURL + '/continue');
       // update canvas

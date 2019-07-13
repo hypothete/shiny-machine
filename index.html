@@ -12,11 +12,21 @@
       <h2 id="last-loop"></h2>
       <h2 id="timeouts"></h2>
       <form id="reset-form" method="post">
-        <label for="huntmode">Hunt mode: </label>
-        <select id="hunt-mode" name="huntmode">
-          <option value="overworld">overworld</option>
-          <option value="ambush" default>ambush</option>
-        </select>
+        <div>
+          <label for="huntmode">Hunt mode: </label>
+          <select id="hunt-mode" name="huntmode">
+            <option value="overworld">overworld</option>
+            <option value="ambush" default>ambush</option>
+          </select>
+        </div>
+        <label for="usewindow">Use window?</label>
+        <input name="usewindow" id="use-window" type="checkbox" />
+        <div id="window-ctrls">
+          <label for="windowstart">Start: </label>
+          <input type="number" name="windowstart" id="window-start" step="10" />
+          <label for="windowend">End: </label>
+          <input type="number" name="windowend" id="window-end" step="10" />
+        </div>
         <br /><br />
         <input type="submit" value="Reset Hunt" />
       </form>

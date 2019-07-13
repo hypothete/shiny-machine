@@ -28,6 +28,12 @@ WebServer server(80);
 String huntmode = "ambush";
 bool isHunting = true;
 int srCount = 0;
+int timeoutCount = 0;
+bool useWindow = false; // to limit successes to a particular window of time
+int windowStart = 0;
+int windowEnd = 30000;
+
+// Webserver templates
 String redirectPage = "<html><head><title>Redirecting...</title><meta http-equiv='refresh' content='1;url=/' /></head><body></body></html>";
 String backPage = "<html><head><title>Going back to referrer...</title></head><body><script type='text/javascript'>location.replace(document.referrer);</script></body></html>";
 
@@ -54,7 +60,6 @@ enum loopState {
 };
 
 loopState resetState = StartLoop;
-int timeoutCount = 0;
 
 #define MIN_SHINY_TIME 1080
 #define MAX_SHINY_TIME 1280
@@ -80,6 +85,14 @@ void handleReset() {
     srCount = 0;
     timeoutCount = 0;
     isHunting = true;
+    String windowForm = server.arg("usewindow");
+    useWindow = windowForm.equals("checked");
+    if (useWindow) {
+      String startString = server.arg("windowstart");
+      String endString = server.arg("windowend");
+      windowStart = startString.toInt();
+      windowEnd = endString.toInt();
+    }
     resetState = StartLoop;
     server.send(200, "text/html", backPage);
     display.clear();
@@ -148,7 +161,16 @@ void handleJson() {
   page += "\",\n";
   page += "  \"timeoutCount\": ";
   page += timeoutCount;
-  page += "\n";
+  page += ",\n";
+  page += "  \"useWindow\": ";
+  page += useWindow;
+  page += ",\n";
+  page += "  \"windowStart\": ";
+  page += windowStart;
+  page += ",\n";
+  page += "  \"windowEnd\": ";
+  page += windowEnd;
+  page += "\n"
   page += "}";
   server.sendHeader("Access-Control-Allow-Origin", "*");
   server.send(200, "application/json", page);
