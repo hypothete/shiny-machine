@@ -9,7 +9,7 @@
 #include <Adafruit_TSL2561_U.h>
 #include "arduino_secrets.h";
 
-String version = "2.3.0";
+String version = "2.4.0";
 
 // Initialize the OLED display using Wire library
 SSD1306Wire  display(0x3c, 5, 4);
@@ -54,6 +54,7 @@ enum loopState {
 };
 
 loopState resetState = StartLoop;
+int timeoutCount = 0;
 
 #define MIN_SHINY_TIME 1080
 #define MAX_SHINY_TIME 1280
@@ -77,6 +78,7 @@ void handleReset() {
     clearKnownValues();
     huntmode = server.arg("huntmode");
     srCount = 0;
+    timeoutCount = 0;
     isHunting = true;
     resetState = StartLoop;
     server.send(200, "text/html", backPage);
@@ -143,7 +145,10 @@ void handleJson() {
   page += ",\n";
   page += "  \"huntmode\": \"";
   page += huntmode;
-  page += "\"\n";
+  page += "\",\n";
+  page += "  \"timeoutCount\": ";
+  page += timeoutCount;
+  page += "\n";
   page += "}";
   server.sendHeader("Access-Control-Allow-Origin", "*");
   server.send(200, "application/json", page);
@@ -369,12 +374,13 @@ void softResetLoop() {
     else if (timeUntilOptions > 30000) {
       // something has snagged - a shiny animation should not take this long
       display.clear();
-      display.println("unexpected error");
+      display.println("loop timed out");
       display.drawLogBuffer(0, 0);
       display.display();
       resetState = StartLoop;
       pressButton(startservo, START_PIN);
       srCount += 1;
+      timeoutCount += 1;
     }
   }
   else if (resetState == EndLoop) {
