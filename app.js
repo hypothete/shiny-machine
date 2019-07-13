@@ -5,6 +5,7 @@ let minVal = 30000;
 let maxVal = 0;
 let maxValTally = 10;
 let resetCount = 0;
+let timeoutCount = 0;
 let lastMeasuredLoop = 0;
 let isHunting = true;
 let huntmode = "ambush";
@@ -17,6 +18,7 @@ const ctx = can.getContext("2d");
 const version = document.getElementById("version");
 const resetHeader = document.getElementById("reset-count");
 const loopHeader = document.getElementById("last-loop");
+const timeoutHeader = document.getElementById("timeouts");
 const huntSelect = document.getElementById("hunt-mode");
 const resetForm = document.getElementById("reset-form");
 const continueForm = document.getElementById("continue-form");
@@ -37,7 +39,7 @@ function init() {
   continueForm.style.display = 'none';
   getJson()
     .then(data => {
-      version.textContent = data.version || "???";
+      version.textContent = 'v' + (data.version || "???");
       loading.style.display = 'none';
       loaded.style.display = 'block';
       // update bounds
@@ -53,6 +55,7 @@ function init() {
         }
       });
       resetCount = data.resetCount;
+      timeoutCount = data.timeoutCount;
       lastMeasuredLoop = data.lastMeasuredLoop;
       isHunting = data.isHunting;
       huntmode = data.huntmode;
@@ -61,10 +64,8 @@ function init() {
       resetHeader.textContent = `Reset #${resetCount}, ${
         isHunting ? "still hunting" : "found shiny!"
       }`;
-      if (!isHunting) {
-        continueForm.style.display = 'none';
-      }
       loopHeader.textContent = `Last measured loop took ${lastMeasuredLoop} ms`;
+      timeoutHeader = `${timeoutCount} timeouts in this hunt`;
       huntSelect.value = huntmode;
       resetForm.setAttribute('action', rootURL + '/reset');
       continueForm.setAttribute('action', rootURL + '/continue');
