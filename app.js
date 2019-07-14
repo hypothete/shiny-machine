@@ -1,6 +1,7 @@
 const MIN_SHINY_TIME = 1080;
 const MAX_SHINY_TIME = 1280;
 
+let values = [];
 let minVal = 30000;
 let maxVal = 0;
 let maxValTally = 10;
@@ -36,8 +37,6 @@ windowToggle.onclick = (evt) => {
 
 const rootURL = "http://192.168.1.47";
 
-ctx.strokeStyle = "black";
-ctx.fillStyle = "rgba(0, 192, 255, 0.2)";
 const w = can.width;
 const h = can.height;
 const margin = 20;
@@ -47,7 +46,6 @@ init();
 function init() {
   loading.style.display = 'block';
   loaded.style.display = 'none';
-  continueForm.style.display = 'none';
   getJson()
     .then(data => {
       version.textContent = 'v' + (data.version || "???");
@@ -65,13 +63,14 @@ function init() {
           maxValTally = tuple[1] * 2;
         }
       });
+      values = data.values;
       resetCount = data.resetCount;
       timeoutCount = data.timeoutCount;
       lastMeasuredLoop = data.lastMeasuredLoop;
       isHunting = data.isHunting;
       huntmode = data.huntmode;
-      useWindow = data.useWindow;
-      windowStart = data.windowStart;
+      useWindow = data.useWindow || useWindow;
+      windowStart = data.windowStart || windowStart;
       windowEnd = data.windowEnd;
 
       // update DOM
@@ -93,7 +92,7 @@ function init() {
       resetForm.setAttribute('action', rootURL + '/reset');
       continueForm.setAttribute('action', rootURL + '/continue');
       // update canvas
-      drawGraph(data.values);
+      drawGraph();
     })
     .catch(err => {
       throw err;
@@ -107,7 +106,7 @@ async function getJson() {
 
 // dlLink.setAttribute('href', 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify({ values: vals, tallies: valTallies })));
 
-function drawGraph(data) {
+function drawGraph() {
   // build scaling functions
   const scaleX = item => {
     return (
@@ -121,6 +120,9 @@ function drawGraph(data) {
       -(h - margin) * (Math.log(item + 1) / Math.log(maxValTally)) + h - margin
     );
   };
+
+  ctx.strokeStyle = "black";
+  ctx.fillStyle = "rgba(0, 192, 255, 0.2)";
 
   // draw axes
   ctx.beginPath();
@@ -148,7 +150,7 @@ function drawGraph(data) {
   }
 
   // draw bars for values
-  data.forEach((tuple, index) => {
+  values.forEach((tuple, index) => {
     const scaledVal = scaleX(tuple[0]);
     const scaledTal = scaleY(tuple[1]);
     const scaledMinTal = scaleY(0);
@@ -164,4 +166,11 @@ function drawGraph(data) {
     );
   });
   ctx.stroke();
+
+  if (useWindow) {
+    // draw window
+    ctx.fillStyle = 'rgba(255, 224, 0, 0.5)';
+    ctx.fillRect(scaleX(minVal),  0, scaleX(windowStart - minVal), can.height - margin - 1);
+    ctx.fillRect(scaleX(windowEnd),  0, scaleX(maxVal + MAX_SHINY_TIME - windowEnd), can.height - margin - 1);
+  }
 }
