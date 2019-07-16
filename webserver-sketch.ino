@@ -86,7 +86,7 @@ void handleReset() {
     timeoutCount = 0;
     isHunting = true;
     String windowForm = server.arg("usewindow");
-    useWindow = windowForm.equals("checked");
+    useWindow = windowForm.equals("on");
     if (useWindow) {
       String startString = server.arg("windowstart");
       String endString = server.arg("windowend");
@@ -99,6 +99,8 @@ void handleReset() {
     display.println("Restarting hunt");
     display.print("Setting hunt mode to ");
     display.println(huntmode);
+    display.print("Window: ");
+    display.println(windowForm);
     display.drawLogBuffer(0, 0);
     display.display();
     pressButton(startservo, START_PIN);
@@ -163,14 +165,14 @@ void handleJson() {
   page += timeoutCount;
   page += ",\n";
   page += "  \"useWindow\": ";
-  page += useWindow;
+  page += useWindow ? "true" : "false";
   page += ",\n";
   page += "  \"windowStart\": ";
   page += windowStart;
   page += ",\n";
   page += "  \"windowEnd\": ";
   page += windowEnd;
-  page += "\n"
+  page += "\n";
   page += "}";
   server.sendHeader("Access-Control-Allow-Origin", "*");
   server.send(200, "application/json", page);
@@ -222,6 +224,13 @@ void addKnownValue(long last) {
     knownValues[lastZero] = last;
     knownValuesTally[lastZero] += 1;
   }
+}
+
+bool inWindow(long last) {
+  if (!useWindow) {
+    return false;
+  }
+  return last < windowStart && last > windowEnd;
 }
 
 bool inShinyRange(long last){
@@ -416,8 +425,9 @@ void softResetLoop() {
     display.drawLogBuffer(0, 0);
     display.display();
     addKnownValue(roundedTime);
+    bool windowCheck = inWindow(roundedTime);
     bool shinyCheck = inShinyRange(roundedTime);
-    if (shinyCheck) {
+    if (shinyCheck || windowCheck) {
       display.clear();
       display.println("found shiny!");
       display.drawLogBuffer(0, 0);

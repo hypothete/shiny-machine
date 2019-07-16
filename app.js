@@ -33,9 +33,18 @@ const windowEndInput = document.getElementById("window-end");
 
 windowToggle.onclick = (evt) => {
   windowCtrls.style.display = evt.target.checked ? 'block' : 'none';
+  drawGraph();
 }
 
-const rootURL = "http://192.168.1.47";
+windowStartInput.onchange = () => {
+  drawGraph();
+};
+
+windowEndInput.onchange = () => {
+  drawGraph();
+};
+
+const rootURL = "http://192.168.15.100";
 
 const w = can.width;
 const h = can.height;
@@ -170,7 +179,6 @@ function drawGraph() {
   if (useWindow) {
     // draw window
     ctx.fillStyle = 'rgba(255, 224, 0, 0.5)';
-    ctx.fillRect(scaleX(minVal),  0, scaleX(windowStart - minVal), can.height - margin - 1);
-    ctx.fillRect(scaleX(windowEnd),  0, scaleX(maxVal + MAX_SHINY_TIME - windowEnd), can.height - margin - 1);
+    ctx.fillRect(scaleX(windowStart),  0, scaleX(windowEnd) - scaleX(windowStart), can.height - margin - 1);
   }
 }
