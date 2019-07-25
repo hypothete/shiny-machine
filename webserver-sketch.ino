@@ -5,8 +5,7 @@
 #include <Wire.h>
 #include "SSD1306Wire.h"
 #include <ESP32Servo.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_TSL2561_U.h>
+#include <Sparkfun_APDS9301_Library.h>
 #include "arduino_secrets.h";
 
 String version = "2.4.0";
@@ -21,7 +20,7 @@ Servo aservo;
 #define START_PIN 2
 
 // Luminosity sensor
-Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 12345);
+APDS9301 apds;
 
 // Webserver & retained data
 WebServer server(80);
@@ -289,15 +288,13 @@ void setupServer() {
 }
 
 void setupLuxSensor() {
-  if(!tsl.begin()) {
-    display.println("No TSL2561 detected. Check your wiring or I2C ADDR!");
+  if (apds.begin(0x39)) {
+    display.clear();
+    display.println("Error with lux sensor");
     display.drawLogBuffer(0, 0);
     display.display();
     while(1);
   }
-  // set up auto-gain for the lux meter
-  tsl.enableAutoRange(true);
-  tsl.setIntegrationTime(TSL2561_INTEGRATIONTIME_13MS);
 }
 
 void setup() {
@@ -308,12 +305,7 @@ void setup() {
 }
 
 long updateLux() {
-  sensors_event_t event;
-  tsl.getEvent(&event);
-  if (event.light) {
-    return event.light;
-  }
-  return 0.0;
+  return apds.readLuxLevel();
 }
 
 void postToTwilio() {
