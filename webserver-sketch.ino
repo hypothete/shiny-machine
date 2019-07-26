@@ -309,26 +309,16 @@ long updateLux() {
 }
 
 void postToTwilio() {
-  int httpResponse = 0;
-  int retries = 0;
-  // loop if request fails
-  while ((httpResponse > 400) != (httpResponse < 199)) {
-    http.begin(SECRET_TWILIO_URL);
-    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-    http.setAuthorization(SECRET_TWILIO_AUTH);
-    httpResponse = http.POST(SECRET_TWILIO_POST_BODY);
-    display.clear();
-    display.print("POST response: ");
-    display.println(httpResponse);
-    display.drawLogBuffer(0, 0);
-    display.display();
-    http.end();
-    delay(15000 + 3000 * retries);
-    retries += 1;
-    if (retries > 10) {
-      break;
-    }
-  }
+  http.begin(SECRET_TWILIO_URL);
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  http.setAuthorization(SECRET_TWILIO_AUTH);
+  int httpResponse = http.POST(SECRET_TWILIO_POST_BODY);
+  display.clear();
+  display.print("Twilio response: ");
+  display.println(httpResponse);
+  display.drawLogBuffer(0, 0);
+  display.display();
+  http.end();
 }
 
 void softResetLoop() {
