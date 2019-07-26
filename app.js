@@ -44,7 +44,7 @@ windowEndInput.onchange = () => {
   drawGraph();
 };
 
-const rootURL = "http://192.168.1.47";
+const rootURL = "http://192.168.1.43";
 
 const w = can.width;
 const h = can.height;

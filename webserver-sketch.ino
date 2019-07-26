@@ -4,20 +4,19 @@
 #include <HTTPClient.h>
 #include <Wire.h>
 #include "SSD1306Wire.h"
-#include <ESP32Servo.h>
 #include <Sparkfun_APDS9301_Library.h>
 #include "arduino_secrets.h";
 
-String version = "2.4.0";
+String version = "3.0.0";
 
 // Initialize the OLED display using Wire library
 SSD1306Wire  display(0x3c, 5, 4);
 
-// Servo stuff
-Servo startservo;
-Servo aservo;
-#define A_PIN 12
-#define START_PIN 2
+// Solenoids
+#define PIN_START 12
+#define PIN_X 13
+#define PIN_RIGHT 14
+#define PIN_A 15
 
 // Luminosity sensor
 APDS9301 apds;
@@ -52,13 +51,22 @@ enum loopState {
   SkipIntro,
   OpenFile,
   StartEncounter,
-  OverworldStart,
+  HoneyStart,
   StartLuxMeter,
   MonitorLux,
   EndLoop
 };
 
+enum honeyState {
+  GotoBag,
+  OpenBag,
+  GotoItems,
+  SelectHoney,
+  ConfirmHoney
+};
+
 loopState resetState = StartLoop;
+honeyState honeyStep = GotoBag;
 
 #define MIN_SHINY_TIME 1080
 #define MAX_SHINY_TIME 1280
@@ -68,13 +76,16 @@ loopState resetState = StartLoop;
 long knownValues[KNOWN_VALUES_LENGTH];
 int knownValuesTally[KNOWN_VALUES_LENGTH];
 
-void pressButton(Servo servo, int pin) {
-  servo.attach(pin);
-  servo.write(55);
-  delay(200);
-  servo.write(15);
-  delay(200);
-  servo.detach();
+// fire a solenoid
+void pushButton(int pin) {
+  display.clear();
+  display.print("PUSHING BUTTON");
+  display.println(pin);
+  display.drawLogBuffer(0, 0);
+  display.display();
+  digitalWrite(pin, HIGH);
+  delay(150);
+  digitalWrite(pin, LOW);
 }
 
 void handleReset() {
@@ -102,7 +113,7 @@ void handleReset() {
     display.println(windowForm);
     display.drawLogBuffer(0, 0);
     display.display();
-    pressButton(startservo, START_PIN);
+    pushButton(PIN_START);
   }
   else {
     // weird verb - just redirect to form
@@ -120,7 +131,7 @@ void handleContinue() {
     display.println("Continuing hunt");
     display.drawLogBuffer(0, 0);
     display.display();
-    pressButton(startservo, START_PIN);
+    pushButton(PIN_START);
   }
   else {
     // weird verb - just redirect to form
@@ -248,6 +259,13 @@ bool inShinyRange(long last){
   return isInRange;
 }
 
+void setupSolenoids() {
+  pinMode(PIN_START, OUTPUT);
+  pinMode(PIN_X, OUTPUT);
+  pinMode(PIN_RIGHT, OUTPUT);
+  pinMode(PIN_A, OUTPUT);
+}
+
 void setupDisplay() {
   // setup display
   display.init();
@@ -298,6 +316,7 @@ void setupLuxSensor() {
 }
 
 void setup() {
+  setupSolenoids();
   setupDisplay();
   setupWifi();
   setupServer();
@@ -334,12 +353,12 @@ void softResetLoop() {
   }
   else if (resetState == SkipIntro && timeSinceLast > 8000) {
     // skip intro
-    pressButton(aservo, A_PIN);
+    pushButton(PIN_A);
     resetState = OpenFile;
   }
   else if (resetState == OpenFile && timeSinceLast > 11000) {
     // open file
-    pressButton(aservo, A_PIN);
+    pushButton(PIN_A);
     resetState = StartEncounter;
   }
   else if (resetState == StartEncounter && timeSinceLast > 16000) {
@@ -354,8 +373,34 @@ void softResetLoop() {
       // jump to lux phase after 9s delay
     }
     else if(huntmode.equals("overworld")) {
-      resetState = OverworldStart;
-      pressButton(aservo, A_PIN);
+      pushButton(PIN_A);
+      resetState = StartLuxMeter;
+    }
+    else if(huntmode.equals("honey")) {
+      pushButton(PIN_X);
+      honeyStep = GotoBag;
+      resetState = HoneyStart;
+    }
+  }
+  else if (resetState == HoneyStart) {
+    if (honeyStep == GotoBag && timeSinceLast > 17000){
+      pushButton(PIN_RIGHT);
+      honeyStep = OpenBag;
+    }
+    else if (honeyStep == OpenBag && timeSinceLast > 18000) {
+      pushButton(PIN_A);
+      honeyStep = GotoItems;
+    }
+    else if (honeyStep == GotoItems && timeSinceLast > 20000) {
+      pushButton(PIN_RIGHT);
+      honeyStep = SelectHoney;
+    }
+    else if(honeyStep == SelectHoney && timeSinceLast > 21000) {
+      pushButton(PIN_A);
+      honeyStep = ConfirmHoney;
+    }
+    else if (honeyStep == ConfirmHoney && timeSinceLast > 22000) {
+      pushButton(PIN_A);
       resetState = StartLuxMeter;
     }
   }
@@ -391,7 +436,7 @@ void softResetLoop() {
       display.drawLogBuffer(0, 0);
       display.display();
       resetState = StartLoop;
-      pressButton(startservo, START_PIN);
+      pushButton(PIN_START);
       srCount += 1;
       timeoutCount += 1;
     }
@@ -418,7 +463,7 @@ void softResetLoop() {
       postToTwilio();
     }
     else {
-      pressButton(startservo, START_PIN);
+      pushButton(PIN_START);
       srCount += 1;
     }
   }
