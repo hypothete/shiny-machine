@@ -102,6 +102,11 @@ function init() {
       continueForm.setAttribute('action', rootURL + '/continue');
       // update canvas
       drawGraph();
+
+      // set reload so we can leave the page open
+      setTimeout(() => {
+        location.reload(true);
+      }, 60000);
     })
     .catch(err => {
       throw err;

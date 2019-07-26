@@ -79,12 +79,12 @@ int knownValuesTally[KNOWN_VALUES_LENGTH];
 // fire a solenoid
 void pushButton(int pin) {
   display.clear();
-  display.print("PUSHING BUTTON");
+  display.print("PUSHING BUTTON ");
   display.println(pin);
   display.drawLogBuffer(0, 0);
   display.display();
   digitalWrite(pin, HIGH);
-  delay(150);
+  delay(100);
   digitalWrite(pin, LOW);
 }
 
