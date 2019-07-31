@@ -23,13 +23,16 @@ APDS9301 apds;
 
 // Webserver & retained data
 WebServer server(80);
-String huntmode = "ambush";
+String huntmode = "honey";
 bool isHunting = true;
 int srCount = 0;
 int timeoutCount = 0;
 bool useWindow = false; // to limit successes to a particular window of time
 int windowStart = 0;
 int windowEnd = 30000;
+
+// Wifi timer
+int check_wifi = 0;
 
 // Webserver templates
 String redirectPage = "<html><head><title>Redirecting...</title><meta http-equiv='refresh' content='1;url=/' /></head><body></body></html>";
@@ -79,12 +82,12 @@ int knownValuesTally[KNOWN_VALUES_LENGTH];
 // fire a solenoid
 void pushButton(int pin) {
   display.clear();
-  display.print("PUSHING BUTTON ");
+  display.print("pushing button ");
   display.println(pin);
   display.drawLogBuffer(0, 0);
   display.display();
   digitalWrite(pin, HIGH);
-  delay(100);
+  delay(50);
   digitalWrite(pin, LOW);
 }
 
@@ -296,6 +299,18 @@ void setupWifi() {
   display.display();
 }
 
+void checkWifi() {
+  if ((WiFi.status() != WL_CONNECTED) && (millis() > check_wifi)) {
+    display.clear();
+    display.println("Reconnecting to WiFi");
+    display.drawLogBuffer(0, 0);
+    display.display();
+    WiFi.disconnect();
+    WiFi.begin(SECRET_SSID, SECRET_PASSWORD);
+    check_wifi = millis() + 60000;
+  }
+}
+
 void setupServer() {
   // start server
   server.on("/", handleJson);
@@ -470,6 +485,7 @@ void softResetLoop() {
 }
 
 void loop() {
+  checkWifi();
   server.handleClient();
   if (isHunting) {
     softResetLoop();

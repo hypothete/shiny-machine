@@ -1,0 +1,29 @@
+body {
+  width: 100vw;
+  font-family: monospace;
+  background-color: #e4c6d5;
+  color: #6b4968;
+  text-align: center;
+  font-size: 2.25rem;
+}
+
+h1 {
+  font-style: oblique;
+  border-bottom: 3px dotted #2d8b84;
+  margin: 10px auto;
+}
+
+h2 {
+  border-bottom: 3px dotted #d35a0a;
+  margin: 10px auto;
+}
+
+#error-text {
+  color: red;
+}
+
+#main-canvas {
+  background-color: rgba(0,0,0,0);
+  width: 80vw;
+  box-shadow: 0px 20px 10px rgba(0,0,0,0.2);
+}

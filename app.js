@@ -30,6 +30,7 @@ const windowToggle = document.getElementById("use-window");
 const windowCtrls = document.getElementById('window-ctrls');
 const windowStartInput = document.getElementById("window-start");
 const windowEndInput = document.getElementById("window-end");
+const errorText = document.getElementById("error-text");
 
 windowToggle.onclick = (evt) => {
   windowCtrls.style.display = evt.target.checked ? 'block' : 'none';
@@ -55,6 +56,11 @@ init();
 function init() {
   loading.style.display = 'block';
   loaded.style.display = 'none';
+  // set reload so we can leave the page open
+  setTimeout(() => {
+    location.reload(true);
+  }, 60000);
+  // fetch the data
   getJson()
     .then(data => {
       version.textContent = 'v' + (data.version || "???");
@@ -102,13 +108,9 @@ function init() {
       continueForm.setAttribute('action', rootURL + '/continue');
       // update canvas
       drawGraph();
-
-      // set reload so we can leave the page open
-      setTimeout(() => {
-        location.reload(true);
-      }, 60000);
     })
     .catch(err => {
+      errorText.textContent = err;
       throw err;
     });
 }

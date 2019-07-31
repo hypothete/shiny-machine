@@ -1,11 +1,15 @@
 <html>
   <head>
     <title>Shiny Hunting Machine</title>
+    <meta name="viewport" content="initial-scale=1" />
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <h1>Shiny Hunting Machine <span id="version"></span></h1>
     <div id="loading">
       <h2>Loading...</h2>
+    </div>
+    <div id="error">
+      <i id="error-text"></i>
     </div>
     <div id="loaded">
       <h2 id="reset-count"></h2>
@@ -33,10 +37,11 @@
         <input type="submit" value="Reset Hunt" />
       </form>
       <form id="continue-form" method="post">
-          <input type="submit" value="Continue" />
+        <input type="submit" value="Continue" />
       </form>
-      <canvas width="500" height="150"></canvas>
+      <canvas id="main-canvas" width="500" height="150"></canvas>
     </div>
+    <h1>Shiny Hunting Machine <span id="version"></span></h1>
     <script type="text/javascript" src="app.js" type="module"></script>
   </body>
 </html>
