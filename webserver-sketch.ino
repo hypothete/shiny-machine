@@ -363,7 +363,8 @@ long updateLux() {
 void postToTwilio(String body) {
   String message = SECRET_TWILIO_POST_BODY;
   message += body;
-  while(lastTwilio < millis()) {
+  int attempts = 0;
+  while(lastTwilio < millis() && attempts < 10) {
     http.begin(SECRET_TWILIO_URL);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     http.setAuthorization(SECRET_TWILIO_AUTH);
@@ -371,6 +372,7 @@ void postToTwilio(String body) {
     http.end();
     if (httpResponse < 200 || httpResponse > 300) {
       lastTwilio = millis() + 60000.0;
+      attempts++;
       display.clear();
       display.print("Twilio error: ");
       display.println(httpResponse);
@@ -383,7 +385,12 @@ void postToTwilio(String body) {
       display.drawLogBuffer(0, 0);
       display.display();
     }
-    
+  }
+  if (attempts >= 10) {
+    display.clear();
+    display.println("Texts timed out");
+    display.drawLogBuffer(0, 0);
+    display.display();
   }
 }
 
