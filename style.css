@@ -10,7 +10,7 @@ body {
 
 h1 {
   font-style: oblique;
-  border-bottom: 3px dotted #2d8b84;
+  border-top: 3px dotted #2d8b84;
   margin: 10px auto;
   font-size: 1.25em;
 }
@@ -28,8 +28,12 @@ input, select {
   border-radius: 10px;
 }
 
+input[type=submit] {
+  width: 80%;
+}
+
 input[type=checkbox] {
-  transform: scale(1.5);
+  transform: scale(3);
 }
 
 #error-text {

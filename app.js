@@ -171,7 +171,6 @@ function drawGraph() {
   }
 
   // draw bars for values
-  ctx.fillStyle = "rgba(0, 192, 255, 0.2)";
   values.forEach((tuple, index) => {
     const scaledVal = scaleX(tuple[0]);
     const scaledTal = scaleY(tuple[1]);
@@ -180,6 +179,9 @@ function drawGraph() {
     const shinyEnd = scaleX(tuple[0] + MAX_SHINY_TIME);
     ctx.moveTo(scaledVal, scaledMinTal);
     ctx.lineTo(scaledVal, scaledTal);
+    // get opacity from distribution of hits
+    const opacity = Math.max(0.1, tuple[1] / maxValTally);
+    ctx.fillStyle = `rgba(0, 192, 255, ${opacity})`;
     ctx.fillRect(
       shinyStart,
       scaledTal,
