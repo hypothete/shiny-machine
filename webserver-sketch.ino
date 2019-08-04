@@ -7,7 +7,7 @@
 #include <Sparkfun_APDS9301_Library.h>
 #include "arduino_secrets.h";
 
-String version = "3.1.1";
+String version = "3.1.2";
 
 // Initialize the OLED display using Wire library
 SSD1306Wire  display(0x3c, 5, 4);
@@ -84,6 +84,13 @@ honeyState honeyStep = GotoBag;
 long knownValues[KNOWN_VALUES_LENGTH];
 int knownValuesTally[KNOWN_VALUES_LENGTH];
 
+void log(String msg) {
+  display.clear();
+  display.println(msg);
+  display.drawLogBuffer(0, 0);
+  display.display();  
+}
+
 // fire a solenoid
 void pushButton(int pin) {
   display.clear();
@@ -137,10 +144,7 @@ void handleContinue() {
     resetState = StartLoop;
     honeyStep = GotoBag;
     server.send(200, "text/html", backPage);
-    display.clear();
-    display.println("Continuing hunt");
-    display.drawLogBuffer(0, 0);
-    display.display();
+    log("Continuing hunt");
     pushButton(PIN_START);
   }
   else {
@@ -155,10 +159,7 @@ void handlePause() {
     resetState = StartLoop;
     honeyStep = GotoBag;
     server.send(200, "text/html", backPage);
-    display.clear();
-    display.println("Pausing hunt");
-    display.drawLogBuffer(0, 0);
-    display.display();
+    log("Pausing hunt");
   }
   else {
     // weird verb - just redirect to form
@@ -217,10 +218,7 @@ void handleJson() {
 
 void handleNotFound() {
   server.send(404, "text/plain", "File not found\n");
-  display.clear();
-  display.println("Sent 404");
-  display.drawLogBuffer(0, 0);
-  display.display();
+  log("Sent 404");
 }
 
 void clearKnownValues() {
@@ -252,10 +250,7 @@ void addKnownValue(long last) {
     if (lastZero == KNOWN_VALUES_LENGTH - 1) {
       // table has run out of room!
       isHunting = false;
-      display.clear();
-      display.println("Error - too many values!");
-      display.drawLogBuffer(0, 0);
-      display.display();
+      log("Error: too many values!");
     }
     // add to array
     knownValues[lastZero] = last;
@@ -325,10 +320,7 @@ void setupWifi() {
 
 void checkWifi() {
   if ((WiFi.status() != WL_CONNECTED) && (millis() > check_wifi)) {
-    display.clear();
-    display.println("Reconnecting to WiFi");
-    display.drawLogBuffer(0, 0);
-    display.display();
+    log("Reconnecting to WiFi");
     WiFi.disconnect();
     WiFi.begin(SECRET_SSID, SECRET_PASSWORD);
     check_wifi = millis() + 60000;
@@ -347,10 +339,7 @@ void setupServer() {
 
 void setupLuxSensor() {
   if (apds.begin(0x39)) {
-    display.clear();
-    display.println("Error with lux sensor");
-    display.drawLogBuffer(0, 0);
-    display.display();
+    log("Error with lux sensor");
     while(1);
   }
 }
@@ -390,10 +379,7 @@ void checkTwilio() {
     }
     else {
       outgoingText = false;
-      display.clear();
-      display.println("Sent text!");
-      display.drawLogBuffer(0, 0);
-      display.display();
+      log("Sent text!");
     }
   }
 }
@@ -463,10 +449,7 @@ void softResetLoop() {
     }
   }
   else if (resetState == StartLuxMeter) {
-    display.clear();
-    display.println("starting lux meter");
-    display.drawLogBuffer(0, 0);
-    display.display();
+    log("starting lux meter");
     lux = 0.0;
     lastLux = 0.0;
     resetState = MonitorLux;
@@ -481,18 +464,12 @@ void softResetLoop() {
     }
     else if (lux > 10.0 && lastLux < 4.0) {
       // screen goes from black to dark
-      display.clear();
-      display.println("measuring animation");
-      display.drawLogBuffer(0, 0);
-      display.display();
+      log("measuring animation");
       timeLuxStart = millis();
     }
     else if (timeUntilOptions > 30000) {
       // something has snagged - a shiny animation should not take this long
-      display.clear();
-      display.println("loop timed out");
-      display.drawLogBuffer(0, 0);
-      display.display();
+      log("loop timed out");
       resetState = StartLoop;
       pushButton(PIN_START);
       srCount += 1;
@@ -513,18 +490,12 @@ void softResetLoop() {
     bool windowCheck = inWindow(roundedTime);
     bool shinyCheck = inShinyRange(roundedTime);
     if (shinyCheck) {
-      display.clear();
-      display.println("found shiny!");
-      display.drawLogBuffer(0, 0);
-      display.display();
+      log("found shiny!");
       isHunting = false;
       postToTwilio("Shiny found!");
     }
     else if(windowCheck) {
-      display.clear();
-      display.println("paused in window");
-      display.drawLogBuffer(0, 0);
-      display.display();
+      log("paused in window");
       isHunting = false;
       postToTwilio("Paused in window.");
     }
