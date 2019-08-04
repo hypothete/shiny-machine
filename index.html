@@ -12,34 +12,43 @@
       <i id="error-text"></i>
     </div>
     <div id="loaded">
+      <canvas id="main-canvas" width="500" height="300"></canvas>
       <h2 id="reset-count"></h2>
       <h2 id="last-loop"></h2>
       <h2 id="timeouts"></h2>
       <form id="reset-form" method="post">
-        <div>
+        <section class="input-section">
           <label for="huntmode">Hunt mode: </label>
           <select id="hunt-mode" name="huntmode">
             <option value="overworld">overworld</option>
             <option value="ambush" default>ambush</option>
             <option value="honey" default>honey</option>
           </select>
-        </div>
-        <br />
-        <label for="usewindow">Use window?</label>
-        <input name="usewindow" id="use-window" type="checkbox" />
-        <div id="window-ctrls">
+        </section class="input-section">
+        <section class="input-section">
+          <label for="usewindow">Use window?</label>
+          <input name="usewindow" id="use-window" type="checkbox" />
+        </section class="input-section">
+        <section class="input-section" id="window-ctrls">
           <label for="windowstart">Start: </label>
           <input type="number" name="windowstart" id="window-start" step="10" />
           <label for="windowend">End: </label>
           <input type="number" name="windowend" id="window-end" step="10" />
-        </div>
-        <br /><br />
+        </section class="input-section">
         <input type="submit" value="Reset Hunt" />
       </form>
-      <form id="continue-form" method="post">
-        <input type="submit" value="Continue" />
-      </form>
-      <canvas id="main-canvas" width="500" height="150"></canvas>
+      <div class="half-wrap">
+        <span class="half">
+            <form id="pause-form" method="post">
+              <input type="submit" value="Pause" />
+            </form>
+          </span>
+          <span class="half">
+            <form id="continue-form" method="post">
+              <input type="submit" value="Continue" />
+            </form>
+          </span>
+      </div>
     </div>
     <h1>Shiny Hunting Machine <span id="version"></span></h1>
     <script type="text/javascript" src="app.js" type="module"></script>

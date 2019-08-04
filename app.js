@@ -26,6 +26,7 @@ const timeoutHeader = document.getElementById("timeouts");
 const huntSelect = document.getElementById("hunt-mode");
 const resetForm = document.getElementById("reset-form");
 const continueForm = document.getElementById("continue-form");
+const pauseForm = document.getElementById("pause-form");
 const windowToggle = document.getElementById("use-window");
 const windowCtrls = document.getElementById('window-ctrls');
 const windowStartInput = document.getElementById("window-start");
@@ -49,7 +50,7 @@ const rootURL = "http://192.168.1.43";
 
 const w = can.width;
 const h = can.height;
-const margin = 20;
+const margin = 60;
 
 init();
 
@@ -90,7 +91,7 @@ function init() {
 
       // update DOM
       resetHeader.textContent = `Reset #${resetCount}, ${
-        isHunting ? "still hunting" : "found shiny!"
+        isHunting ? "still hunting" : "paused"
       }`;
       loopHeader.textContent = `Last measured loop took ${lastMeasuredLoop} ms`;
       timeoutHeader.textContent = `${timeoutCount} timeouts in this hunt`;
@@ -106,6 +107,7 @@ function init() {
 
       resetForm.setAttribute('action', rootURL + '/reset');
       continueForm.setAttribute('action', rootURL + '/continue');
+      pauseForm.setAttribute('action', rootURL + '/pause');
       // update canvas
       drawGraph();
     })
@@ -138,7 +140,8 @@ function drawGraph() {
   };
 
   ctx.strokeStyle = "black";
-  ctx.fillStyle = "rgba(0, 192, 255, 0.2)";
+  ctx.fillStyle = "black";
+  ctx.font = "bold 20px sans-serif";
 
   // draw axes
   ctx.beginPath();
@@ -147,25 +150,28 @@ function drawGraph() {
   ctx.lineTo(w, h - margin);
 
   // draw x-axis labels
-  for (let i = 0; i <= 10; i++) {
-    const tickVal = minVal + (i * (maxVal + MAX_SHINY_TIME - minVal)) / 10;
+  ctx.textAlign = 'start';
+  for (let i = 0; i <= 5; i++) {
+    const tickVal = minVal + (i * (maxVal + MAX_SHINY_TIME - minVal)) / 5;
     const tx = scaleX(tickVal);
     ctx.moveTo(tx, h - margin);
     ctx.lineTo(tx, h - margin + 10);
-    ctx.strokeText(tickVal, tx + 1, h);
+    ctx.fillText(tickVal, tx + 1, h - margin + 20);
   }
 
   // draw y-axis labels
+  ctx.textAlign = 'end';
   const mlt = Math.floor(Math.log(maxValTally));
   for (let i = 0; i <= mlt; i++) {
     const tickVal = Math.pow(mlt, i);
     const tx = scaleY(tickVal);
     ctx.moveTo(margin - 10, tx);
     ctx.lineTo(margin, tx);
-    ctx.strokeText(tickVal, 1, tx + 10);
+    ctx.fillText(tickVal, margin - 10, tx + 10);
   }
 
   // draw bars for values
+  ctx.fillStyle = "rgba(0, 192, 255, 0.2)";
   values.forEach((tuple, index) => {
     const scaledVal = scaleX(tuple[0]);
     const scaledTal = scaleY(tuple[1]);
@@ -185,7 +191,7 @@ function drawGraph() {
 
   if (useWindow) {
     // draw window
-    ctx.fillStyle = 'rgba(255, 224, 0, 0.5)';
+    ctx.fillStyle = 'rgba(32, 224, 0, 0.5)';
     ctx.fillRect(scaleX(windowStart),  0, scaleX(windowEnd) - scaleX(windowStart), can.height - margin - 1);
   }
 }

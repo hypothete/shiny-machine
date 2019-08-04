@@ -243,7 +243,7 @@ bool inWindow(long last) {
   if (!useWindow) {
     return false;
   }
-  return last < windowStart && last > windowEnd;
+  return last > windowStart && last < windowEnd;
 }
 
 bool inShinyRange(long last){
