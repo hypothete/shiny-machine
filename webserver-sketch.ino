@@ -7,7 +7,7 @@
 #include <Sparkfun_APDS9301_Library.h>
 #include "arduino_secrets.h";
 
-String version = "3.0.0";
+String version = "3.1.1";
 
 // Initialize the OLED display using Wire library
 SSD1306Wire  display(0x3c, 5, 4);
@@ -48,6 +48,7 @@ long lux = 0.0;
 long lastLux = 0.0;
 long timeUntilOptions = 0.0;
 long lastMeasuredLoop = 0.0;
+long lastTwilio = 0.0;
 
 enum loopState {
   StartLoop,
@@ -135,6 +136,22 @@ void handleContinue() {
     display.drawLogBuffer(0, 0);
     display.display();
     pushButton(PIN_START);
+  }
+  else {
+    // weird verb - just redirect to form
+    server.send(200, "text/html", redirectPage);
+  }
+}
+
+void handlePause() {
+  if (server.method() == HTTP_POST) {
+    isHunting = false;
+    resetState = StartLoop;
+    server.send(200, "text/html", backPage);
+    display.clear();
+    display.println("Pausing hunt");
+    display.drawLogBuffer(0, 0);
+    display.display();
   }
   else {
     // weird verb - just redirect to form
@@ -316,6 +333,7 @@ void setupServer() {
   server.on("/", handleJson);
   server.on("/reset", handleReset);
   server.on("/continue", handleContinue);
+  server.on("/pause", handlePause);
   server.onNotFound(handleNotFound);
   server.begin();
 }
@@ -342,17 +360,31 @@ long updateLux() {
   return apds.readLuxLevel();
 }
 
-void postToTwilio() {
-  http.begin(SECRET_TWILIO_URL);
-  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-  http.setAuthorization(SECRET_TWILIO_AUTH);
-  int httpResponse = http.POST(SECRET_TWILIO_POST_BODY);
-  display.clear();
-  display.print("Twilio response: ");
-  display.println(httpResponse);
-  display.drawLogBuffer(0, 0);
-  display.display();
-  http.end();
+void postToTwilio(String body) {
+  String message = SECRET_TWILIO_POST_BODY;
+  message += body;
+  while(lastTwilio < millis()) {
+    http.begin(SECRET_TWILIO_URL);
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    http.setAuthorization(SECRET_TWILIO_AUTH);
+    int httpResponse = http.POST(message);
+    http.end();
+    if (httpResponse < 200 || httpResponse > 300) {
+      lastTwilio = millis() + 60000.0;
+      display.clear();
+      display.print("Twilio error: ");
+      display.println(httpResponse);
+      display.drawLogBuffer(0, 0);
+      display.display();
+    }
+    else {
+      display.clear();
+      display.println("Sent text!");
+      display.drawLogBuffer(0, 0);
+      display.display();
+    }
+    
+  }
 }
 
 void softResetLoop() {
@@ -469,13 +501,21 @@ void softResetLoop() {
     addKnownValue(roundedTime);
     bool windowCheck = inWindow(roundedTime);
     bool shinyCheck = inShinyRange(roundedTime);
-    if (shinyCheck || windowCheck) {
+    if (shinyCheck) {
       display.clear();
       display.println("found shiny!");
       display.drawLogBuffer(0, 0);
       display.display();
       isHunting = false;
-      postToTwilio();
+      postToTwilio("Shiny found!");
+    }
+    else if(windowCheck) {
+      display.clear();
+      display.println("paused in window");
+      display.drawLogBuffer(0, 0);
+      display.display();
+      isHunting = false;
+      postToTwilio("Paused in window.");
     }
     else {
       pushButton(PIN_START);
