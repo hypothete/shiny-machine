@@ -48,7 +48,11 @@ long lux = 0.0;
 long lastLux = 0.0;
 long timeUntilOptions = 0.0;
 long lastMeasuredLoop = 0.0;
-long lastTwilio = 0.0;
+
+// text message properties;
+long nextText = 0.0;
+bool outgoingText = false;
+String textMsg = SECRET_TWILIO_POST_BODY;
 
 enum loopState {
   StartLoop,
@@ -361,18 +365,20 @@ long updateLux() {
 }
 
 void postToTwilio(String body) {
-  String message = SECRET_TWILIO_POST_BODY;
-  message += body;
-  int attempts = 0;
-  while(lastTwilio < millis() && attempts < 10) {
+  textMsg = SECRET_TWILIO_POST_BODY;
+  textMsg += body;
+  outgoingText = true;
+}
+
+void checkTwilio() {
+  if(outgoingText && (nextText < millis())) {
     http.begin(SECRET_TWILIO_URL);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     http.setAuthorization(SECRET_TWILIO_AUTH);
-    int httpResponse = http.POST(message);
+    int httpResponse = http.POST(textMsg);
     http.end();
     if (httpResponse < 200 || httpResponse > 300) {
-      lastTwilio = millis() + 60000.0;
-      attempts++;
+      nextText = millis() + 60000.0;
       display.clear();
       display.print("Twilio error: ");
       display.println(httpResponse);
@@ -380,17 +386,12 @@ void postToTwilio(String body) {
       display.display();
     }
     else {
+      outgoingText = false;
       display.clear();
       display.println("Sent text!");
       display.drawLogBuffer(0, 0);
       display.display();
     }
-  }
-  if (attempts >= 10) {
-    display.clear();
-    display.println("Texts timed out");
-    display.drawLogBuffer(0, 0);
-    display.display();
   }
 }
 
@@ -533,6 +534,7 @@ void softResetLoop() {
 
 void loop() {
   checkWifi();
+  checkTwilio();
   server.handleClient();
   if (isHunting) {
     softResetLoop();
