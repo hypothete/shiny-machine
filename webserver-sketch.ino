@@ -112,6 +112,7 @@ void handleReset() {
       windowEnd = endString.toInt();
     }
     resetState = StartLoop;
+    honeyStep = GotoBag;
     server.send(200, "text/html", backPage);
     display.clear();
     display.println("Restarting hunt");
@@ -134,6 +135,7 @@ void handleContinue() {
     srCount += 1;
     isHunting = true;
     resetState = StartLoop;
+    honeyStep = GotoBag;
     server.send(200, "text/html", backPage);
     display.clear();
     display.println("Continuing hunt");
@@ -151,6 +153,7 @@ void handlePause() {
   if (server.method() == HTTP_POST) {
     isHunting = false;
     resetState = StartLoop;
+    honeyStep = GotoBag;
     server.send(200, "text/html", backPage);
     display.clear();
     display.println("Pausing hunt");
