@@ -1,13 +1,11 @@
 #include <WiFi.h>
-#include <WiFiClient.h>
 #include <WebServer.h>
 #include <HTTPClient.h>
-#include <Wire.h>
 #include "SSD1306Wire.h"
 #include <Sparkfun_APDS9301_Library.h>
 #include "arduino_secrets.h";
 
-String version = "3.1.2";
+String version = "3.2.0";
 
 // Initialize the OLED display using Wire library
 SSD1306Wire  display(0x3c, 5, 4);
@@ -30,9 +28,6 @@ int timeoutCount = 0;
 bool useWindow = false; // to limit successes to a particular window of time
 int windowStart = 0;
 int windowEnd = 30000;
-
-// Wifi timer
-int check_wifi = 0;
 
 // Webserver templates
 String redirectPage = "<html><head><title>Redirecting...</title><meta http-equiv='refresh' content='1;url=/' /></head><body></body></html>";
@@ -84,20 +79,10 @@ honeyState honeyStep = GotoBag;
 long knownValues[KNOWN_VALUES_LENGTH];
 int knownValuesTally[KNOWN_VALUES_LENGTH];
 
-void log(String msg) {
-  display.clear();
-  display.println(msg);
-  display.drawLogBuffer(0, 0);
-  display.display();  
-}
-
 // fire a solenoid
 void pushButton(int pin) {
-  display.clear();
   display.print("pushing button ");
   display.println(pin);
-  display.drawLogBuffer(0, 0);
-  display.display();
   digitalWrite(pin, HIGH);
   delay(50);
   digitalWrite(pin, LOW);
@@ -121,14 +106,11 @@ void handleReset() {
     resetState = StartLoop;
     honeyStep = GotoBag;
     server.send(200, "text/html", backPage);
-    display.clear();
     display.println("Restarting hunt");
     display.print("Setting hunt mode to ");
     display.println(huntmode);
     display.print("Window: ");
     display.println(windowForm);
-    display.drawLogBuffer(0, 0);
-    display.display();
     pushButton(PIN_START);
   }
   else {
@@ -144,7 +126,7 @@ void handleContinue() {
     resetState = StartLoop;
     honeyStep = GotoBag;
     server.send(200, "text/html", backPage);
-    log("Continuing hunt");
+    display.println("Continuing hunt");
     pushButton(PIN_START);
   }
   else {
@@ -159,7 +141,7 @@ void handlePause() {
     resetState = StartLoop;
     honeyStep = GotoBag;
     server.send(200, "text/html", backPage);
-    log("Pausing hunt");
+    display.println("Pausing hunt");
   }
   else {
     // weird verb - just redirect to form
@@ -218,7 +200,7 @@ void handleJson() {
 
 void handleNotFound() {
   server.send(404, "text/plain", "File not found\n");
-  log("Sent 404");
+  display.println("Sent 404");
 }
 
 void clearKnownValues() {
@@ -250,7 +232,7 @@ void addKnownValue(long last) {
     if (lastZero == KNOWN_VALUES_LENGTH - 1) {
       // table has run out of room!
       isHunting = false;
-      log("Error: too many values!");
+      display.println("Error: too many values!");
     }
     // add to array
     knownValues[lastZero] = last;
@@ -301,30 +283,18 @@ void setupWifi() {
   // Wifi setup
   display.print("Connecting to ");
   display.println(SECRET_SSID);
-  display.drawLogBuffer(0, 0);
-  display.display();
   WiFi.mode(WIFI_STA);
+  WiFi.setAutoConnect(false);
+  WiFi.setAutoReconnect(false);
   WiFi.begin(SECRET_SSID, SECRET_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
+    delay(1000);
     display.print(".");
     display.drawLogBuffer(0, 0);
     display.display();
   }
   display.println("WiFi connected.");
-  display.println("IP address: ");
   display.println(WiFi.localIP());
-  display.drawLogBuffer(0, 0);
-  display.display();
-}
-
-void checkWifi() {
-  if ((WiFi.status() != WL_CONNECTED) && (millis() > check_wifi)) {
-    log("Reconnecting to WiFi");
-    WiFi.disconnect();
-    WiFi.begin(SECRET_SSID, SECRET_PASSWORD);
-    check_wifi = millis() + 60000;
-  }
 }
 
 void setupServer() {
@@ -339,7 +309,7 @@ void setupServer() {
 
 void setupLuxSensor() {
   if (apds.begin(0x39)) {
-    log("Error with lux sensor");
+    display.println("Error with lux sensor");
     while(1);
   }
 }
@@ -371,15 +341,12 @@ void checkTwilio() {
     http.end();
     if (httpResponse < 200 || httpResponse > 300) {
       nextText = millis() + 60000.0;
-      display.clear();
       display.print("Twilio error: ");
       display.println(httpResponse);
-      display.drawLogBuffer(0, 0);
-      display.display();
     }
     else {
       outgoingText = false;
-      log("Sent text!");
+      display.println("Sent text!");
     }
   }
 }
@@ -388,11 +355,8 @@ void softResetLoop() {
   long timeSinceLast = millis() - lastLoopStart;
   if (resetState == StartLoop) {
     lastLoopStart = millis();
-    display.clear();
     display.print("starting loop ");
     display.println(srCount);
-    display.drawLogBuffer(0, 0);
-    display.display();
     resetState = SkipIntro;
   }
   else if (resetState == SkipIntro && timeSinceLast > 8000) {
@@ -406,12 +370,9 @@ void softResetLoop() {
     resetState = StartEncounter;
   }
   else if (resetState == StartEncounter && timeSinceLast > 16000) {
-    display.clear();
     display.print("starting ");
     display.print(huntmode);
     display.println(" hunt");
-    display.drawLogBuffer(0, 0);
-    display.display();
     if (huntmode.equals("ambush")) {
       resetState = StartLuxMeter;
       // jump to lux phase after 9s delay
@@ -449,7 +410,7 @@ void softResetLoop() {
     }
   }
   else if (resetState == StartLuxMeter) {
-    log("starting lux meter");
+    display.println("starting lux meter");
     lux = 0.0;
     lastLux = 0.0;
     resetState = MonitorLux;
@@ -464,12 +425,12 @@ void softResetLoop() {
     }
     else if (lux > 10.0 && lastLux < 4.0) {
       // screen goes from black to dark
-      log("measuring animation");
+      display.println("measuring animation");
       timeLuxStart = millis();
     }
     else if (timeUntilOptions > 30000) {
       // something has snagged - a shiny animation should not take this long
-      log("loop timed out");
+      display.println("loop timed out");
       resetState = StartLoop;
       pushButton(PIN_START);
       srCount += 1;
@@ -480,22 +441,19 @@ void softResetLoop() {
     resetState = StartLoop;
     lastMeasuredLoop = timeUntilOptions;
     int roundedTime = 10 * round(timeUntilOptions/10);
-    display.clear();
     display.print("animation took ");
     display.print(roundedTime);
     display.println("ms");
-    display.drawLogBuffer(0, 0);
-    display.display();
     addKnownValue(roundedTime);
     bool windowCheck = inWindow(roundedTime);
     bool shinyCheck = inShinyRange(roundedTime);
     if (shinyCheck) {
-      log("found shiny!");
+      display.println("found shiny!");
       isHunting = false;
       postToTwilio("Shiny found!");
     }
     else if(windowCheck) {
-      log("paused in window");
+      display.println("paused in window");
       isHunting = false;
       postToTwilio("Paused in window.");
     }
@@ -507,10 +465,12 @@ void softResetLoop() {
 }
 
 void loop() {
-  checkWifi();
   checkTwilio();
   server.handleClient();
   if (isHunting) {
     softResetLoop();
   }
+  display.clear();
+  display.drawLogBuffer(0, 0);
+  display.display(); 
 }
