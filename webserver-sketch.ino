@@ -284,6 +284,7 @@ void setupWifi() {
   display.print("Connecting to ");
   display.println(SECRET_SSID);
   WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);
   WiFi.setAutoConnect(false);
   WiFi.setAutoReconnect(false);
   WiFi.begin(SECRET_SSID, SECRET_PASSWORD);
@@ -295,6 +296,24 @@ void setupWifi() {
   }
   display.println("WiFi connected.");
   display.println(WiFi.localIP());
+}
+
+void reconnectWifi() {
+  if (WiFi.status() != WL_CONNECTED) {
+    display.println("Reconnecting to WiFi");
+    WiFi.disconnect();
+    delay(1000);
+    WiFi.begin(SECRET_SSID, SECRET_PASSWORD);
+    display.clear();
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(1000);
+      display.print(".");
+      display.drawLogBuffer(0, 0);
+      display.display();
+    }
+    display.println("WiFi connected.");
+    display.println(WiFi.localIP());
+  }
 }
 
 void setupServer() {
@@ -465,6 +484,7 @@ void softResetLoop() {
 }
 
 void loop() {
+  reconnectWifi();
   checkTwilio();
   server.handleClient();
   if (isHunting) {
