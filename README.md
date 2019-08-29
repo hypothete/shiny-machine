@@ -1,6 +1,6 @@
 # Shiny Machine
 
-The Shiny Machine is an ESP32-powered device that hunts shiny pokemon in the 7th-gen Pokemon games.
+The Shiny Machine is an ESP32-powered device that hunts shiny pokemon in Pokemon Ultra Sun & Ultra Moon (USUM).
 
 ## Background
 
@@ -8,22 +8,14 @@ Shiny pokemon are significantly rarer versions of pokemon, with alternate color 
 
 Players that hunt for shiny pokemon often set up their avatars in-game to re-trigger certain pokemon encounters every time they turn off and on their 3DS; this is called "soft resetting." For most pokemon encounters, soft resetting re-rolls the chance of a shiny pokemon being generated, so shiny hunters frequently soft reset their game hundreds to thousands of times by hand in order to find the shiny variant of their target pokemon.
 
-I started this project to automate the chore of soft resetting for shiny pokemon. I found a few examples of people building shiny hunting machines that were exceedingly helpful when prototyping, so here are a few links:
+I started this project to automate soft resetting for shiny pokemon. I found a few examples of people building shiny hunting machines that were exceedingly helpful when prototyping:
 
 - [/u/cabubaloo's shiny legendary auto hunter for the Nintendo Switch](https://old.reddit.com/r/ShinyPokemon/comments/aauks9/lgpe_shiny_legendary_auto_hunter_i_have_gotten/)
 - [Nooby's Gamepro](https://www.noobysgamepro.com/)
 - [/u/CaptainSpaceCat's shiny hunting device](https://www.reddit.com/r/pokemon/comments/7g6zbl/automatic_shiny_hunting_device/)
 - [dekuNukem's Poke-O-Matic](https://www.youtube.com/watch?v=jyJPsZc-QTM)
 
-Most importantly for this project was [this post by /u/Inigmatix](https://old.reddit.com/r/ShinyPokemon/comments/8igm15/talkobservation_from_making_a_shiny_resetting/). They explain that shiny pokemon have a battle intro animation in Pokemon Sun and Moon that lasts exactly 1.18 seconds. As pokemon encounters begin in these games, the lower screen of the 3DS transitions from dark, to a low level, to bright depending on the length of the encountered pokemon's battle intro animation. By measuring the time between these screen transitions, the presence of a shiny pokemon can be inferred. I happened to have the parts used by Inigmatix when I discovered their post, so my first iteration of the machine was a very similar Arduino-based device, down to the pile of books holding servos in place over the A and Start buttons. It wasn't long, however, that I started to come up with improvements.
-
-## Basic operation modes
-
-(flowcharts here)
-
-Ambush encounter
-Overworld encounter
-Honey encounter
+Most importantly for this project was [this post by /u/Inigmatix](https://old.reddit.com/r/ShinyPokemon/comments/8igm15/talkobservation_from_making_a_shiny_resetting/). They explain that shiny pokemon have a battle intro animation in Pokemon Sun and Moon that lasts exactly 1.18 seconds. As a pokemon encounter begins, the lower screen of the 3DS transitions from dark to bright. The time it takes for the screen to light up depends on the length of the encountered pokemon's battle intro animation. By measuring the time between these screen transitions, the presence of a shiny pokemon can be inferred. I happened to have the parts used by Inigmatix when I discovered their post, so my first iteration of the machine was a very similar Arduino-based device, down to the pile of books holding servos in place over the A and Start buttons. It wasn't long, however, that I started to come up with improvements.
 
 ## Design
 
@@ -45,3 +37,55 @@ The luminosity sensor I started the project with was a [TSL2561](https://www.spa
 
 ### Software
 
+Every encounter animation is measured, and the length is stored in a table. If the measured timespan is 1.18 seconds longer than a known measurement, the machine pauses and sends a notification. Initially I was measuring animation durations by hand and reprogramming the machine, but when I realized that the machine could infer shinies using an offset from its stored timings, I was able to reduce the amount of configuration for each hunt and also support more types of encounters.
+
+Responsibilities for data and user interaction are divided between the ESP32 and a webpage frontend that communicates with the ESP32. The ESP32 serves up JSON with timing table data and information on the machine's state and setting. By POSTing form data to the ESP32, the web frontend configures the machine's settings. The frontend is also responsible for generating graphs of the encounter timings.
+
+## Encounter modes
+
+The shiny machine supports 3 types of encounters: ambush, overworld, and honey.
+
+### Ambush
+
+(flowchart)
+
+Ambush encounters were the first supported encounter because I initially wanted to capture a wormhole legendary, [Kyogre](https://twitter.com/Hypothete/status/1134536299090604032). After repeating the process with the remaining wormhole legendaries, I moved on to using this mode with [repeatable ambushes](https://bulbapedia.bulbagarden.net/wiki/Ambush_encounter#Introduced_in_Sun_and_Moon) you can find in Alola. Outside of legendaries, there's maybe 35 or so possible species to encounter in repeatable ambush encounters.
+
+### Overworld
+
+(flowchart)
+
+Overworld encounters basically just involve pressing A to interact with an overworld sprite of a pokemon. This mode is mostly useful for ultra beasts, although you could use it for a few others like Zygarde in Resolution Cave.
+
+### Honey
+
+(flowchart)
+
+I showed the shiny machine to a few friends, and they pointed out that I was not leveraging techniques like Sweet Scent pre-gen 7 and the item Honey to initiate wild encounters. I redesigned the hardware so that the machine could access the player inventory, and built out honey mode. Currently for this mode to work the Bag menu item needs to be in the upper right of the inital menu screen, and honey should be placed at the top of the Items section. Adding honey mode drastically expanded the number of species that the shiny machine could hunt.
+
+## Window controls
+
+(picture of window in use)
+
+This is an advanced feature I added for burgeoning pokemon researchers. By defining a window for timing, the machine will continue to operate normally, but it will also pause if any measured animation falls within the defined window of time. This allows you to do things like associate timings with certain pokemon, shiny hunt a smaller set of pokemon in the encounter, or hunt for pokemon with abilities that affect the intro animation length.
+
+## Observations
+
+Here's a list of factors that affect the length of the battle intro animation:
+
+- Species of your party lead
+- Species of encountered pokemon
+- Abilities of each of the above (each ability adds ~4s delay)
+- Whether either pokemon is shiny (1.18s delay each)
+- Friendship level of your party lead (>2s, I don't have a good measurement of this number)
+
+Amazingly, even with this much variation in timing, there are rarely false positives in the hunts. Particular locations and species combos can cause the occasional false positive, like if one species in an area causes a weather effect and another has an ability called into effect at the start of the encounter. I want to collect more data and flesh this out.
+
+Also, if I leave the machine running all day and night, it seems to spot 3 shiny pokemon every 2 days. This is right on odds with the Shiny Charm.
+
+## Thanks
+
+- All of the inventors mentioned in the Background section
+- Paul2 & Alan, for their insight on honey
+- John Romkey for [this post](https://romkey.com/2018/07/30/stop-the-loop-insanity/) on Arduino loops
+- The very friendly people at [Dorkbot PDX](https://dorkbotpdx.org/) for helping with hardware design and troubleshooting
