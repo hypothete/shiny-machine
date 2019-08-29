@@ -47,6 +47,8 @@ For now I'm taping down the shoulder buttons to make soft resetting a matter of 
 
 ### Software
 
+I programmed the Shiny Machine using the Arduino IDE. I don't have a lot of experience with C++, so the code is nothing to write home about.
+
 Every encounter animation is measured, and the length is stored in a table. If the measured timespan is 1.18 seconds longer than a known measurement, the machine pauses and sends a notification. Initially I was measuring animation durations by hand and reprogramming the machine, but when I realized that the machine could infer shinies using an offset from its stored timings, I was able to reduce the amount of configuration for each hunt and also support more types of encounters.
 
 Responsibilities for data and user interaction are divided between the ESP32 and a webpage frontend that communicates with the ESP32. The ESP32 serves up JSON with timing table data and information on the machine's state and setting. By POSTing form data to the ESP32, the web frontend configures the machine's settings. The frontend is also responsible for generating graphs of the encounter timings.
