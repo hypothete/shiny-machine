@@ -35,6 +35,16 @@ The luminosity sensor I started the project with was a [TSL2561](https://www.spa
 
 (picture of before vs after spreads)
 
+### Enclosure
+
+(enclosure picture)
+
+I'm a big duct-tape-and-bailing-wire kind of guy, so the enclosure is made from an old IKEA shelf and a bunch of hot glued cardboard. Maybe one day I will upgrade it to a laser-cut wood enclosure, but for now this will suffice. The plywood base is on adhesive felt pads in order to cut down on sound from the solenoids as they tap the buttons. There's also a rubber backstop that sits just behind the 2DS to keep it from sliding out of the enclosure.
+
+### 2DS setup
+
+For now I'm taping down the shoulder buttons to make soft resetting a matter of pressing the Start button. Initially I used rubber bands, but they kept sliding off my 2DS. I'm open to any ideas on ways to be less wasteful of tape. For overworld and some ambush encounters, the player needs to walk into contact with a sprite - I just wedge a dime under the circle pad.
+
 ### Software
 
 Every encounter animation is measured, and the length is stored in a table. If the measured timespan is 1.18 seconds longer than a known measurement, the machine pauses and sends a notification. Initially I was measuring animation durations by hand and reprogramming the machine, but when I realized that the machine could infer shinies using an offset from its stored timings, I was able to reduce the amount of configuration for each hunt and also support more types of encounters.
@@ -43,7 +53,7 @@ Responsibilities for data and user interaction are divided between the ESP32 and
 
 ## Encounter modes
 
-The shiny machine supports 3 types of encounters: ambush, overworld, and honey.
+The Shiny Machine supports 3 types of encounters: ambush, overworld, and honey.
 
 ### Ambush
 
@@ -61,7 +71,7 @@ Overworld encounters basically just involve pressing A to interact with an overw
 
 (flowchart)
 
-I showed the shiny machine to a few friends, and they pointed out that I was not leveraging techniques like Sweet Scent pre-gen 7 and the item Honey to initiate wild encounters. I redesigned the hardware so that the machine could access the player inventory, and built out honey mode. Currently for this mode to work the Bag menu item needs to be in the upper right of the inital menu screen, and honey should be placed at the top of the Items section. Adding honey mode drastically expanded the number of species that the shiny machine could hunt.
+I showed the Shiny Machine to a few friends, and they pointed out that I was not leveraging techniques like Sweet Scent pre-gen 7 and the item Honey to initiate wild encounters. I redesigned the hardware so that the machine could access the player inventory, and built out honey mode. Currently for this mode to work the Bag menu item needs to be in the upper right of the inital menu screen, and honey should be placed at the top of the Items section. Adding honey mode drastically expanded the number of species that the Shiny Machine could hunt.
 
 ## Window controls
 
@@ -89,3 +99,6 @@ Also, if I leave the machine running all day and night, it seems to spot 3 shiny
 - Paul2 & Alan, for their insight on honey
 - John Romkey for [this post](https://romkey.com/2018/07/30/stop-the-loop-insanity/) on Arduino loops
 - The very friendly people at [Dorkbot PDX](https://dorkbotpdx.org/) for helping with hardware design and troubleshooting
+- My wife, for tolerating the constant soft clicking coming from our garage
+
+If this repo helps you build your own Shiny Machine or if you have any questions about the project, please [drop me a line](mailto:duncan@hypothete.com)!
