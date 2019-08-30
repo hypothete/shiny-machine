@@ -23,8 +23,6 @@ Most importantly for this project was [this post by /u/Inigmatix](https://old.re
 
 ### Microcontroller
 
-![an ESP32 on a breadboard, displaying the WiFi logo on a screen](./images/esp32.jpg)
-
 The heart of the Shiny Machine is a WEMOS LOLIN32 ESP32 board with a built in OLED screen. ESP32 microcontrollers can be programmed using the Arduino IDE, so it was easy to port my Arduino code to it. I wanted to use an ESP32 instead of an Arduino for the MCU was because ESP32s have built-in wifi.
 
 When I ran my first few hunts with an Arduino as the MCU, the machine notified me that it found a shiny pokemon by pausing its operation and blinking an LED. Because the button-pushing servos were noisy, I moved the machine to my garage. However, this meant that I started compulsively stopping by the garage to see if the machine had found anything yet. By switching to the ESP32, I could have the machine display its status on a webpage on my home network. But then I started compulsively checking the webpage, so I ended up setting up a Twilio account and had the machine call their API. Now, I get a text from Twilio when the machine finds a shiny pokemon, so I don't have to think about it at all.
@@ -37,7 +35,13 @@ The SG-50 servos were functional but somewhat noisy and bulky, so I switched to 
 
 The luminosity sensor I started the project with was a [TSL2561](https://www.sparkfun.com/products/retired/12055). It died during a demonstration, so I upgraded to an [APDS9301](https://www.sparkfun.com/products/14350). This had the interesting side effect of significantly improving my timing measurements; the TSL2561 often had a spread of about 50ms around the values I measured. With the APDS9301, mesurements were accurate within 10ms.
 
-(picture of before vs after spreads)
+Here's an old graph with the original luminosity sensor:
+
+![a graph of 1171 encounters. The timings form normal distributions about 100ms wide](1171-ambush-rt-2.png)
+
+And here's with the new sensor (admittedly, this screenshot has less samples):
+
+![a graph of 133 encounters. timings are within 10ms of each other](./images/133-lushjungle.png)
 
 ### Enclosure
 
@@ -49,7 +53,7 @@ I'm a big duct-tape-and-bailing-wire kind of guy, so the enclosure is made from 
 
 (2DS pic)
 
-For now I'm taping down the shoulder buttons to make soft resetting a matter of pressing the Start button. Initially I used rubber bands, but they kept sliding off my 2DS. I'm open to any ideas on ways to be less wasteful of tape. For overworld and some ambush encounters, the player needs to walk into contact with a sprite - I just wedge a dime under the circle pad.
+I tape down the shoulder buttons of my 2DS so that the MAchine can soft reset just by pressing the Start button. Initially I used rubber bands, but they kept sliding off the 2DS. I'm open to any ideas on ways to be less wasteful of tape. For overworld and some ambush encounters, the player needs to walk into contact with a sprite - I just wedge a dime under the circle pad.
 
 ### Software
 
