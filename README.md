@@ -37,7 +37,7 @@ The luminosity sensor I started the project with was a [TSL2561](https://www.spa
 
 Here's an old graph with the original luminosity sensor:
 
-![a graph of 1171 encounters. The timings form normal distributions about 100ms wide](1171-ambush-rt-2.png)
+![a graph of 1171 encounters. The timings form normal distributions about 100ms wide](./images/1171-ambush-rt-2.png)
 
 And here's with the new sensor (admittedly, this screenshot has less samples):
 
