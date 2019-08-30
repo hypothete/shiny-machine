@@ -2,9 +2,7 @@
 
 ![A photo of shiny machine version 4](./images/machine-v4.jpg)
 
-*The Shiny Machine, v 4.0.0*
-
-The Shiny Machine is an ESP32-powered device that hunts shiny pokemon in Pokemon Ultra Sun & Ultra Moon (USUM).
+The Shiny Machine is an ESP32-powered device that hunts shiny pokemon in Pokemon Ultra Sun & Ultra Moon.
 
 ## Background
 
@@ -51,13 +49,11 @@ And here's with the new sensor:
 
 ### Enclosure
 
-(enclosure picture)
+![Pictures of the front and back of the Shiny Machine](./images/enclosure-details.jpg)
 
 I'm a big duct-tape-and-bailing-wire kind of guy, so the enclosure is made from an old IKEA shelf and a bunch of hot glued cardboard. Maybe one day I'll upgrade it to a laser-cut wood enclosure, but for now this will suffice. The base is on adhesive felt pads in order to cut down on sound from the solenoids. There's also a rubber backstop that sits just behind the 2DS to keep it from sliding out of the enclosure.
 
 ### 2DS setup
-
-(2DS pic)
 
 I tape down the shoulder buttons of my 2DS so that the machine can soft reset just by pressing the Start button. Initially I used rubber bands, but they kept sliding off the 2DS. I'm open to any ideas on ways to be less wasteful of tape. For overworld and some ambush encounters, the player needs to walk into contact with a sprite - I just wedge a dime under the circle pad.
 
@@ -93,9 +89,11 @@ I showed the Shiny Machine to a few friends, and they pointed out that I was not
 
 ## Window controls
 
+This is an advanced feature I added for burgeoning pokemon researchers. When a window is active, the machine will pause if any measured animation falls within the defined start and end period. This allows you to do things like associate timings with certain pokemon, shiny hunt a more specific set of pokemon in an area, or hunt for pokemon with abilities that affect the intro animation length.
+
 ![a screenshot of the web frontend showing that the machine has paused on a timing that occurred in a specified window](./images/paused-window.png)
 
-This is an advanced feature I added for burgeoning pokemon researchers. When a window is active, the machine will pause if any measured animation falls within the defined start and end period. This allows you to do things like associate timings with certain pokemon, shiny hunt a more specific set of pokemon in an area, or hunt for pokemon with abilities that affect the intro animation length.
+*Here you can see the green region defined by the window values. The machine has paused because a timing fell within the window.*
 
 ## Observations
 
@@ -103,13 +101,13 @@ Here's a list of factors that affect the length of the battle intro animation:
 
 - Species of your party lead
 - Species of encountered pokemon
-- Abilities of each of the above (each ability adds ~4s delay)
+- Abilities of each of the above. Abilities that come into play at the start of a battle add ~4s delay.
 - Whether either pokemon is shiny (1.18s delay each)
-- Friendship level of your party lead (>2s, I don't have a good measurement of this number)
+- Friendship level of your party lead (>3s, I don't have a good measurement of this number)
 
 Even with this many variables affecting timing, there are rarely false positives in the hunts. Particular locations and species combos can cause the occasional false positive, like if one species in an area causes a weather effect and another has an ability called into effect at the start of the encounter.
 
-Also, if I leave the machine running all day and night, it seems to spot 3 shiny pokemon every 2 days. This is right on odds with the Shiny Charm.
+If I leave the machine running all day and night, it seems to spot 3 shiny pokemon every 2 days. This is right on odds with the Shiny Charm.
 
 ## Thanks
 
