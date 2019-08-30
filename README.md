@@ -2,6 +2,8 @@
 
 ![A photo of shiny machine version 4](./images/machine-v4.jpg)
 
+*The Shiny Machine, v 4.0.0*
+
 The Shiny Machine is an ESP32-powered device that hunts shiny pokemon in Pokemon Ultra Sun & Ultra Moon (USUM).
 
 ## Background
@@ -23,11 +25,13 @@ Most importantly for this project was [this post by /u/Inigmatix](https://old.re
 
 ### Microcontroller
 
-![A diagram of the ESP32 board I'm using. Not sue where this image is from, sorry](./images/wemos-lolin32-esp32-fake-oled-ssd1306.jpg)
+![A diagram of the ESP32 board I'm using. Not sue where this image is from](./images/wemos-lolin32-esp32-fake-oled-ssd1306.jpg)
+
+*A board diagram of the WEMOS LOLIN32. Not sure where I got this from*
 
 The heart of the Shiny Machine is a WEMOS LOLIN32 ESP32 board with a built in OLED screen. ESP32 microcontrollers can be programmed using the Arduino IDE, so it was easy to port my Arduino code to it. I wanted to use an ESP32 instead of an Arduino for the MCU was because ESP32s have built-in wifi.
 
-When I ran my first few hunts with an Arduino as the MCU, the machine notified me that it found a shiny pokemon by pausing its operation and blinking an LED. Because the button-pushing servos were noisy, I moved the machine to my garage. However, this meant that I started compulsively stopping by the garage to see if the machine had found anything yet. By switching to the ESP32, I could have the machine display its status on a webpage on my home network. But then I started compulsively checking the webpage, so I ended up setting up a Twilio account and had the machine call their API. Now, I get a text from Twilio when the machine finds a shiny pokemon, so I don't have to think about it at all.
+When I ran my first few hunts with an Arduino as the MCU, I had the machine notify me that it found a shiny pokemon by pausing its operation and blinking an LED. Because the button-pushing servos were noisy, I moved the machine to my garage. However, this meant that I started compulsively stopping by the garage to see if the machine had found anything yet. When I switched to the ESP32, I had the machine display its status on a webpage on my home network. But then I started compulsively checking the webpage, so I ended up setting up a Twilio account and had the machine call their API. Now, I get a text from Twilio when the machine finds a shiny pokemon, and I don't have to think about it at all.
 
 ### Motors and sensors
 
