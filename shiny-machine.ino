@@ -5,7 +5,7 @@
 #include <Sparkfun_APDS9301_Library.h>
 #include "arduino_secrets.h";
 
-String version = "3.2.0";
+String version = "4.0.0";
 
 // Initialize the OLED display using Wire library
 SSD1306Wire  display(0x3c, 5, 4);

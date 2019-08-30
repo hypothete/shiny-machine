@@ -46,7 +46,7 @@ windowEndInput.onchange = () => {
   drawGraph();
 };
 
-const rootURL = "http://192.168.1.43";
+const rootURL = "http://192.168.43.194";
 
 const w = can.width;
 const h = can.height;
@@ -55,6 +55,7 @@ const margin = 60;
 init();
 
 function init() {
+  console.log(`Looking for the Shiny Machine at ${rootURL}`)
   loading.style.display = 'block';
   loaded.style.display = 'none';
   // set reload so we can leave the page open

@@ -1,4 +1,6 @@
-# Shiny Machine
+# Shiny Machine✨
+
+![A photo of shiny machine version 4](./images/machine-v4.jpg)
 
 The Shiny Machine is an ESP32-powered device that hunts shiny pokemon in Pokemon Ultra Sun & Ultra Moon (USUM).
 
@@ -20,6 +22,8 @@ Most importantly for this project was [this post by /u/Inigmatix](https://old.re
 ## Design
 
 ### Microcontroller
+
+![an ESP32 on a breadboard, displaying the WiFi logo on a screen](./images/esp32.jpg)
 
 The heart of the Shiny Machine is a WEMOS LOLIN32 ESP32 board with a built in OLED screen. ESP32 microcontrollers can be programmed using the Arduino IDE, so it was easy to port my Arduino code to it. I wanted to use an ESP32 instead of an Arduino for the MCU was because ESP32s have built-in wifi.
 
@@ -43,41 +47,43 @@ I'm a big duct-tape-and-bailing-wire kind of guy, so the enclosure is made from 
 
 ### 2DS setup
 
+(2DS pic)
+
 For now I'm taping down the shoulder buttons to make soft resetting a matter of pressing the Start button. Initially I used rubber bands, but they kept sliding off my 2DS. I'm open to any ideas on ways to be less wasteful of tape. For overworld and some ambush encounters, the player needs to walk into contact with a sprite - I just wedge a dime under the circle pad.
 
 ### Software
 
-I programmed the Shiny Machine using the Arduino IDE. I don't have a lot of experience with C++, so the code is nothing to write home about.
+I programmed the Shiny Machine using the Arduino IDE. I don't have a lot of experience with C++, so the code is nothing to write home about. You'll need to add a file called *arduino_secrets.h* with a number of define statements that provide wifi information and Twilio configuration. *example_secrets.h* is a template for you to use when setting up the defines.
 
 Every encounter animation is measured, and the length is stored in a table. If the measured timespan is 1.18 seconds longer than a known measurement, the machine pauses and sends a notification. Initially I was measuring animation durations by hand and reprogramming the machine, but when I realized that the machine could infer shinies using an offset from its stored timings, I was able to reduce the amount of configuration for each hunt and also support more types of encounters.
 
-Responsibilities for data and user interaction are divided between the ESP32 and a webpage frontend that communicates with the ESP32. The ESP32 serves up JSON with timing table data and information on the machine's state and setting. By POSTing form data to the ESP32, the web frontend configures the machine's settings. The frontend is also responsible for generating graphs of the encounter timings.
+Responsibilities for data and user interaction are divided between the ESP32 and a webpage frontend that communicates with the ESP32. The ESP32 serves up JSON with timing table data and information on the machine's state and setting. By POSTing form data to the ESP32, the web frontend configures the machine's settings. The address of the ESP32 needs to be set in app.js in the variable *rootURL*.
+
+![a screenshot of the web frontend](./images/frontend.png)
+
+The frontend is also responsible for generating graphs of the encounter timings. Each timing contributes to a vertical black line on the graph that is followed to its right by a blue rectangle. The black line represents a timing, and the blue rectangle is the offset for that timing to be for a shiny pokemon. The x-axis of the graph is animation length in milliseconds, and the y-axis shows occurrences of timings logarithmically. That way you can get a good feel for how the pokemon are distributed, and identify outliers and hardware failures. For instance, I've found that if one of the shoulder buttons is becoming untaped, a drift of values in the graph can be a good indicator that something is wrong.
 
 ## Encounter modes
 
 The Shiny Machine supports 3 types of encounters: ambush, overworld, and honey.
 
-### Ambush
+![a flowchart that shows how encounter modes and timings work](./images/flowchart.png)
 
-(flowchart)
+### Ambush
 
 Ambush encounters were the first supported encounter because I initially wanted to capture a wormhole legendary, [Kyogre](https://twitter.com/Hypothete/status/1134536299090604032). After repeating the process with the remaining wormhole legendaries, I moved on to using this mode with [repeatable ambushes](https://bulbapedia.bulbagarden.net/wiki/Ambush_encounter#Introduced_in_Sun_and_Moon) you can find in Alola. Outside of legendaries, there's maybe 35 or so possible species to encounter in repeatable ambush encounters.
 
 ### Overworld
 
-(flowchart)
-
 Overworld encounters basically just involve pressing A to interact with an overworld sprite of a pokemon. This mode is mostly useful for ultra beasts, although you could use it for a few others like Zygarde in Resolution Cave.
 
 ### Honey
-
-(flowchart)
 
 I showed the Shiny Machine to a few friends, and they pointed out that I was not leveraging techniques like Sweet Scent pre-gen 7 and the item Honey to initiate wild encounters. I redesigned the hardware so that the machine could access the player inventory, and built out honey mode. Currently for this mode to work the Bag menu item needs to be in the upper right of the inital menu screen, and honey should be placed at the top of the Items section. Adding honey mode drastically expanded the number of species that the Shiny Machine could hunt.
 
 ## Window controls
 
-(picture of window in use)
+![a screenshot of the web frontend showing that the machine has paused on a timing that occurred in a specified window](./images/paused-window.png)
 
 This is an advanced feature I added for burgeoning pokemon researchers. By defining a window for timing, the machine will continue to operate normally, but it will also pause if any measured animation falls within the defined window of time. This allows you to do things like associate timings with certain pokemon, shiny hunt a smaller set of pokemon in the encounter, or hunt for pokemon with abilities that affect the intro animation length.
 
@@ -101,6 +107,6 @@ Also, if I leave the machine running all day and night, it seems to spot 3 shiny
 - Paul2 & Alan, for their insight on honey
 - John Romkey for [this post](https://romkey.com/2018/07/30/stop-the-loop-insanity/) on Arduino loops
 - The very friendly people at [Dorkbot PDX](https://dorkbotpdx.org/) for helping with hardware design and troubleshooting
-- My wife, for tolerating the constant soft clicking coming from our garage
+- My wife, for tolerating the constant clicking noises coming from our garage
 
 If this repo helps you build your own Shiny Machine or if you have any questions about the project, please [drop me a line](mailto:duncan@hypothete.com)!
