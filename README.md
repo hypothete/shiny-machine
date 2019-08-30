@@ -8,7 +8,7 @@ The Shiny Machine is an ESP32-powered device that hunts shiny pokemon in Pokemon
 
 ### [What I caught over 3 months](https://youtu.be/KpVn8fdpYRU)
 
-## [Shiny Machine in action](https://youtu.be/2gXbAAJPIcU)
+### [Shiny Machine in action](https://youtu.be/2gXbAAJPIcU)
 
 ## Background
 
