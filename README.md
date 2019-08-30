@@ -4,6 +4,12 @@
 
 The Shiny Machine is an ESP32-powered device that hunts shiny pokemon in Pokemon Ultra Sun & Ultra Moon.
 
+## Videos
+
+### [What I caught over 3 months](https://youtu.be/KpVn8fdpYRU)
+
+## [Shiny Machine in action](https://youtu.be/2gXbAAJPIcU)
+
 ## Background
 
 Shiny pokemon are significantly rarer versions of pokemon, with alternate color schemes and a unique intro animation when sent into battle. In the latest pokemon games, the base odds of encountering a shiny pokemon is 1/4096. By collecting  the Shiny Charm item in-game, players can increase their odds to 3/4096.
