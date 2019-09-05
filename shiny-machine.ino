@@ -5,7 +5,7 @@
 #include <Sparkfun_APDS9301_Library.h>
 #include "arduino_secrets.h";
 
-String version = "4.0.0";
+String version = "4.0.1";
 
 // Initialize the OLED display using Wire library
 SSD1306Wire  display(0x3c, 5, 4);
@@ -439,7 +439,7 @@ void softResetLoop() {
     lastLux = lux;
     lux = updateLux();
     timeUntilOptions = millis() - timeLuxStart;
-    if (lux > 49.0) {
+    if (lux > 40.0) {
       resetState = EndLoop;
     }
     else if (lux > 10.0 && lastLux < 4.0) {
