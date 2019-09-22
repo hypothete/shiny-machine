@@ -39,15 +39,7 @@ enum loopState {
   SelectFile,
   OpenFile,
   InteractShrine,
-  Read1,
-  Read2,
-  Read3,
-  Read4,
-  Read5,
-  Read6,
-  Read7,
-  SayYes,
-  ConfirmBall,
+  Read,
   MonitorLux,
   MonitorShiny
 };
@@ -59,7 +51,7 @@ void pushButton(int pin) {
   display.print("pushing button ");
   display.println(pin);
   digitalWrite(pin, HIGH);
-  delay(100);
+  delay(150);
   digitalWrite(pin, LOW);
 }
 
@@ -183,43 +175,17 @@ void softResetLoop() {
   }
   else if (resetState == InteractShrine && timeSinceLast > 13000) {
     pushButton(PIN_A);
-    resetState = Read1;
-    display.print("entering read1");
+    resetState = Read;
+    display.print("entering read");
   }
-  else if (resetState == Read1 && timeSinceLast > 15000) {
-    pushButton(PIN_A);
-    resetState = Read2;
-  }
-  else if (resetState == Read2 && timeSinceLast > 16000) {
-    pushButton(PIN_A);
-    resetState = Read3;
-  }
-  else if (resetState == Read3 && timeSinceLast > 17000) {
-    pushButton(PIN_A);
-    resetState = Read4;
-  }
-  else if (resetState == Read4 && timeSinceLast > 18000) {
-    pushButton(PIN_A);
-    resetState = Read5;
-  }
-  else if (resetState == Read5 && timeSinceLast > 19000) {
-    pushButton(PIN_A);
-    resetState = Read6;
-  }
-  else if (resetState == Read6 && timeSinceLast > 20000) {
-    pushButton(PIN_A);
-    resetState = Read7;
-  }
-  else if (resetState == Read7 && timeSinceLast > 21000) {
-    pushButton(PIN_A);
-    resetState = SayYes;
-  }
-  else if (resetState == SayYes && timeSinceLast > 22000) {
-    pushButton(PIN_A);
-    resetState = ConfirmBall;
-  }
-  else if (resetState == ConfirmBall && timeSinceLast > 23000) {
-    pushButton(PIN_A);
+  else if (resetState == Read) {
+    delay(1000);
+    for(int i=0; i<9; i++){
+      pushButton(PIN_A);
+      if (i < 8) {
+        delay(1000);
+      }
+    }
     resetState = MonitorLux;
   }
   else if (resetState == MonitorLux) {
@@ -228,7 +194,7 @@ void softResetLoop() {
     lastLux = 0.0;
     resetState = MonitorShiny;
   }
-  else if (resetState == MonitorShiny && timeSinceLast > 38000) {
+  else if (resetState == MonitorShiny && timeSinceLast > 37000) {
     // monitor lux
     lastLux = lux;
     lux = updateLux();
