@@ -2,9 +2,10 @@
 #include <HTTPClient.h>
 #include "SSD1306Wire.h"
 #include <Sparkfun_APDS9301_Library.h>
+#include <WebServer.h>
 #include "arduino_secrets.h";
 
-String version = "4.0.1";
+String version = "4.1.2";
 
 // Initialize the OLED display using Wire library
 SSD1306Wire  display(0x3c, 5, 4);
@@ -23,13 +24,15 @@ int srCount = 0;
 // HTTP client for Twilio
 HTTPClient http;
 
-// timing for non-blocking loop
-long lastLoopStart = 0.0;
-long lux = 0.0;
-long lastLux = 0.0;
+//Webserver for reading measurements
+WebServer server(80);
 
-// text message properties;
-long nextText = 0.0;
+// timing for non-blocking loop
+long lastLoopStart = 0;
+int lux = 0;
+
+// text message properties
+long nextText = 0;
 bool outgoingText = false;
 String textMsg = SECRET_TWILIO_POST_BODY;
 
@@ -46,10 +49,12 @@ enum loopState {
 
 loopState resetState = StartLoop;
 
+#define MEASUREMENTS_LENGTH 20000
+int measurements[MEASUREMENTS_LENGTH];
+int measurementCount = 0;
+
 // fire a solenoid
 void pushButton(int pin) {
-  display.print("pushing button ");
-  display.println(pin);
   digitalWrite(pin, HIGH);
   delay(150);
   digitalWrite(pin, LOW);
@@ -61,6 +66,35 @@ void resetGame() {
   pushButton(PIN_SCREEN);
   delay(1000);
   pushButton(PIN_SCREEN);
+}
+
+void handleRoot() {
+  String page = "{\n";
+  page += "  \"version\": \"";
+  page += version;
+  page += "\",\n";
+  page += "  \"values\": [";
+  for(int i=0; i<measurementCount; i++){
+    if (i > 0 && i < measurementCount) {
+      page += ", ";
+    }
+    page += measurements[i];
+  }
+  page += "],\n";
+  page += "  \"resetCount\": ";
+  page += srCount;
+  page += ",\n";
+  page += "  \"isHunting\": ";
+  page += isHunting ? "true" : "false";
+  page += "\n";
+  page += "}";
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, "application/json", page);
+}
+
+void handleNotFound() {
+  server.send(404, "text/plain", "File not found\n");
+  display.println("Sent 404");
 }
 
 void setupSolenoids() {
@@ -114,6 +148,14 @@ void setupLuxSensor() {
     display.println("Error with lux sensor");
     while(1);
   }
+  apds.setGain(APDS9301::HIGH_GAIN);
+  apds.setIntegrationTime(APDS9301::INT_TIME_101_MS);
+}
+
+void setupWebserver() {
+  server.on("/", handleRoot);
+  server.onNotFound(handleNotFound);
+  server.begin();
 }
 
 void setup() {
@@ -121,10 +163,11 @@ void setup() {
   setupDisplay();
   setupWifi();
   setupLuxSensor();
+  setupWebserver();
 }
 
-long updateLux() {
-  return apds.readLuxLevel();
+int updateLux() {
+  return int(apds.readLuxLevel());
 }
 
 void postToTwilio(String body) {
@@ -141,7 +184,7 @@ void checkTwilio() {
     int httpResponse = http.POST(textMsg);
     http.end();
     if (httpResponse < 200 || httpResponse > 300) {
-      nextText = millis() + 60000.0;
+      nextText = millis() + 60000;
       display.print("Twilio error: ");
       display.println(httpResponse);
     }
@@ -149,6 +192,18 @@ void checkTwilio() {
       outgoingText = false;
       display.println("Sent text!");
     }
+  }
+}
+
+void addMeasurement(int value) {
+  if(measurementCount >= MEASUREMENTS_LENGTH - 1) {
+    isHunting = false;
+    display.println("Error: too many values!");
+    postToTwilio("Error: too many values!");
+  }
+  else {
+    measurements[measurementCount] = value;
+    measurementCount++;
   }
 }
 
@@ -164,19 +219,18 @@ void softResetLoop() {
     pushButton(PIN_A);
     resetState = SelectFile;
   }
-  else if (resetState == SelectFile && timeSinceLast > 9000) {
+  else if (resetState == SelectFile && timeSinceLast > 8000) {
     pushButton(PIN_A);
     resetState = OpenFile;
   }
-  else if (resetState == OpenFile && timeSinceLast > 11000) {
+  else if (resetState == OpenFile && timeSinceLast > 10000) {
     // open file
     pushButton(PIN_A);
     resetState = InteractShrine;
   }
-  else if (resetState == InteractShrine && timeSinceLast > 13000) {
+  else if (resetState == InteractShrine && timeSinceLast > 12000) {
     pushButton(PIN_A);
     resetState = Read;
-    display.print("entering read");
   }
   else if (resetState == Read) {
     delay(1000);
@@ -190,37 +244,42 @@ void softResetLoop() {
   }
   else if (resetState == MonitorLux) {
     display.println("starting lux meter");
-    lux = 0.0;
-    lastLux = 0.0;
+    lux = 0;
     resetState = MonitorShiny;
   }
-  else if (resetState == MonitorShiny && timeSinceLast > 37000) {
-    // monitor lux
-    lastLux = lux;
-    lux = updateLux();
-    display.println(lux);
-    if (lux < 20.0 && lastLux > 20.0) {
-      // screen goes from light to dark
-      display.println("found shiny!");
-      isHunting = false;
-      postToTwilio("Shiny found!");
-      
+  else if (resetState == MonitorShiny) {
+    int newLux = updateLux();
+    if (newLux != lux) {
+      display.println(newLux);
     }
-    else if (timeSinceLast > 42000) {
-      display.println("loop timed out");
-      resetState = StartLoop;
-      srCount += 1;
-      resetGame();
+    lux = newLux;
+    if (timeSinceLast > 39900) {
+      addMeasurement(lux);
+      if(lux > 1) {
+        // deviation from standard lux curve
+        display.println(" found shiny!");
+        isHunting = false;
+        postToTwilio("Shiny found!");
+      }
+      else {
+        display.println("loop timed out");
+        resetState = StartLoop;
+        srCount += 1;
+        resetGame();
+      }
     }
   }
 }
 
 void loop() {
-  reconnectWifi();
-  checkTwilio();
   if (isHunting) {
     softResetLoop();
   }
+  else {
+    checkTwilio();
+  }
+  reconnectWifi();
+  server.handleClient();
   display.clear();
   display.drawLogBuffer(0, 0);
   display.display(); 
