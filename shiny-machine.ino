@@ -1,7 +1,6 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include "SSD1306Wire.h"
-#include <Sparkfun_APDS9301_Library.h>
 #include <WebServer.h>
 #include "arduino_secrets.h";
 
@@ -14,22 +13,16 @@ SSD1306Wire  display(0x3c, 5, 4);
 #define PIN_SCREEN 14
 #define PIN_A 12
 
-// Luminosity sensor
-APDS9301 apds;
-
 // retained data
 bool isHunting = true;
 int srCount = 0;
-
-// HTTP client for Twilio
-HTTPClient http;
+int retryCount = 0; // retries for calls to camera
 
 //Webserver for reading measurements
 WebServer server(80);
 
 // timing for non-blocking loop
 long lastLoopStart = 0;
-int lux = 0;
 
 // text message properties
 long nextText = 0;
@@ -43,15 +36,10 @@ enum loopState {
   OpenFile,
   InteractShrine,
   Read,
-  MonitorLux,
   MonitorShiny
 };
 
 loopState resetState = StartLoop;
-
-#define MEASUREMENTS_LENGTH 20000
-int measurements[MEASUREMENTS_LENGTH];
-int measurementCount = 0;
 
 // fire a solenoid
 void pushButton(int pin) {
@@ -73,14 +61,6 @@ void handleRoot() {
   page += "  \"version\": \"";
   page += version;
   page += "\",\n";
-  page += "  \"values\": [";
-  for(int i=0; i<measurementCount; i++){
-    if (i > 0 && i < measurementCount) {
-      page += ", ";
-    }
-    page += measurements[i];
-  }
-  page += "],\n";
   page += "  \"resetCount\": ";
   page += srCount;
   page += ",\n";
@@ -95,6 +75,15 @@ void handleRoot() {
 void handleNotFound() {
   server.send(404, "text/plain", "File not found\n");
   display.println("Sent 404");
+}
+
+void handleContinue() {
+  server.send(200, "text/plain", "");
+  display.println("Reset from web");
+  resetState = StartLoop;
+  srCount += 1;
+  resetGame();
+  isHunting = true;
 }
 
 void setupSolenoids() {
@@ -130,44 +119,37 @@ void reconnectWifi() {
     display.println("Reconnecting to WiFi");
     WiFi.disconnect();
     delay(1000);
+    int tries = 0;
     WiFi.begin(SECRET_SSID, SECRET_PASSWORD);
-    display.clear();
     while (WiFi.status() != WL_CONNECTED) {
       delay(1000);
       display.print(".");
       display.drawLogBuffer(0, 0);
       display.display();
+      tries++;
+      if (tries > 30) {
+        reconnectWifi();
+      }
     }
     display.println("WiFi connected.");
     display.println(WiFi.localIP());
   }
 }
 
-void setupLuxSensor() {
-  if (apds.begin(0x39)) {
-    display.println("Error with lux sensor");
-    while(1);
-  }
-  apds.setGain(APDS9301::HIGH_GAIN);
-  apds.setIntegrationTime(APDS9301::INT_TIME_101_MS);
-}
-
 void setupWebserver() {
   server.on("/", handleRoot);
+  server.on("/continue", handleContinue);
   server.onNotFound(handleNotFound);
   server.begin();
 }
 
 void setup() {
+  Serial.begin(115200);
+  Serial.setDebugOutput(true);
   setupSolenoids();
   setupDisplay();
   setupWifi();
-  setupLuxSensor();
   setupWebserver();
-}
-
-int updateLux() {
-  return int(apds.readLuxLevel());
 }
 
 void postToTwilio(String body) {
@@ -176,8 +158,48 @@ void postToTwilio(String body) {
   outgoingText = true;
 }
 
+bool getShinyFromCam() {
+  HTTPClient http;
+  bool isShiny = true;
+  // assume true until proven otherwise
+  // for error identification
+  http.begin(ESP_CAM_IP);
+  int httpCode = http.GET();
+  display.print("Response: ");
+  display.println(httpCode);
+  if (httpCode == 200) {
+    String payload = http.getString();
+    http.end();
+    display.print("Code: ");
+    display.println(payload);
+    if (!payload.equals("1")) {
+      isShiny = false;
+    }
+  }
+  else if(httpCode == 500){
+    // error at the camera
+    String payload = http.getString();
+    http.end();
+    display.println("Camera error:");
+    display.println(payload);
+  }
+  else {
+    // probably a request timeout
+    http.end();
+    if (retryCount > 10) {
+      display.println("Too many camera timeouts");
+      return true;
+    }
+    display.println("Camera timeout, retrying");
+    retryCount++;
+    return getShinyFromCam();
+  }
+  return isShiny;
+}
+
 void checkTwilio() {
   if(outgoingText && (nextText < millis())) {
+    HTTPClient http;
     http.begin(SECRET_TWILIO_URL);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     http.setAuthorization(SECRET_TWILIO_AUTH);
@@ -195,25 +217,14 @@ void checkTwilio() {
   }
 }
 
-void addMeasurement(int value) {
-  if(measurementCount >= MEASUREMENTS_LENGTH - 1) {
-    isHunting = false;
-    display.println("Error: too many values!");
-    postToTwilio("Error: too many values!");
-  }
-  else {
-    measurements[measurementCount] = value;
-    measurementCount++;
-  }
-}
-
 void softResetLoop() {
   long timeSinceLast = millis() - lastLoopStart;
   if (resetState == StartLoop) {
     lastLoopStart = millis();
-    display.print("starting loop ");
+    display.print("Starting loop ");
     display.println(srCount);
     resetState = StartGame;
+    retryCount = 0;
   }
   else if (resetState == StartGame && timeSinceLast > 6000) {
     pushButton(PIN_A);
@@ -240,33 +251,25 @@ void softResetLoop() {
         delay(1000);
       }
     }
-    resetState = MonitorLux;
-  }
-  else if (resetState == MonitorLux) {
-    display.println("starting lux meter");
-    lux = 0;
     resetState = MonitorShiny;
   }
-  else if (resetState == MonitorShiny) {
-    int newLux = updateLux();
-    if (newLux != lux) {
-      display.println(newLux);
+  else if (resetState == MonitorShiny && timeSinceLast > 41000) {
+    display.clear();
+    display.println("Checking camera");
+    display.drawLogBuffer(0, 0);
+    display.display();
+    bool isShiny = getShinyFromCam();
+    if(isShiny) {
+      // deviation from standard lux curve
+      display.println("Found shiny!");
+      isHunting = false;
+      postToTwilio("Shiny found!");
     }
-    lux = newLux;
-    if (timeSinceLast > 39900) {
-      addMeasurement(lux);
-      if(lux > 1) {
-        // deviation from standard lux curve
-        display.println(" found shiny!");
-        isHunting = false;
-        postToTwilio("Shiny found!");
-      }
-      else {
-        display.println("loop timed out");
-        resetState = StartLoop;
-        srCount += 1;
-        resetGame();
-      }
+    else {
+      display.println("Loop timed out");
+      resetState = StartLoop;
+      srCount += 1;
+      resetGame();
     }
   }
 }

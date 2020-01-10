@@ -5,3 +5,4 @@
 #define SECRET_TWILIO_URL "your-url-from-twilio"
 #define SECRET_TWILIO_AUTH "your-base64-auth"
 #define SECRET_TWILIO_POST_BODY "To=+yournumber&From=+yourtwilionumber&Body="
+#define ESP_CAM_IP "192.168.1.1/shiny"
